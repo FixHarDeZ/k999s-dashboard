@@ -82,3 +82,24 @@ func TestListNodes_ReturnsList(t *testing.T) {
 	assert.Len(t, nodes, 1)
 	assert.Equal(t, "node-1", nodes[0].Name)
 }
+
+func TestListEvents_ReturnsList(t *testing.T) {
+	fakeClient := fake.NewSimpleClientset(
+		&corev1.Event{
+			ObjectMeta: metav1.ObjectMeta{Name: "evt-1", Namespace: "default"},
+			Reason:     "BackOff",
+			Message:    "Back-off restarting failed container",
+			Type:       "Warning",
+			Count:      3,
+			InvolvedObject: corev1.ObjectReference{
+				Kind: "Pod", Name: "api-pod",
+			},
+		},
+	)
+	client := k8s.NewClientFromKubernetesClient(fakeClient, "")
+	events, err := client.ListEvents(context.Background(), "default")
+	require.NoError(t, err)
+	assert.Len(t, events, 1)
+	assert.Equal(t, "Warning", events[0].Type)
+	assert.Equal(t, "BackOff", events[0].Reason)
+}

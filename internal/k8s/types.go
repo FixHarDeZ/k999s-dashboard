@@ -66,3 +66,27 @@ type SecretSummary struct {
 	DataCount int    `json:"dataCount"`
 	Age       string `json:"age"`
 }
+
+type EventSummary struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Reason    string `json:"reason"`
+	Message   string `json:"message"`
+	Type      string `json:"type"` // Normal | Warning
+	Object    string `json:"object"`
+	Count     int32  `json:"count"`
+	Age       string `json:"age"`
+}
+
+type PodMetricsSummary struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	CPU       string `json:"cpu"`
+	Memory    string `json:"memory"`
+}
+
+type NodeMetricsSummary struct {
+	Name   string `json:"name"`
+	CPU    string `json:"cpu"`
+	Memory string `json:"memory"`
+}
