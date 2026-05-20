@@ -27,3 +27,41 @@ export interface ContextInfo {
 export interface ListResponse<T> {
   items: T[]
 }
+
+export interface ServiceSummary {
+  name: string
+  namespace: string
+  type: string
+  clusterIP: string
+  ports: string
+  age: string
+}
+
+export interface NodeSummary {
+  name: string
+  status: 'Ready' | 'NotReady' | string
+  roles: string
+  age: string
+  version: string
+}
+
+export interface NamespaceSummary {
+  name: string
+  status: string
+  age: string
+}
+
+export interface ConfigMapSummary {
+  name: string
+  namespace: string
+  dataCount: number
+  age: string
+}
+
+export interface SecretSummary {
+  name: string
+  namespace: string
+  type: string
+  dataCount: number
+  age: string
+}

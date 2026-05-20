@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fetchPods, fetchNamespaces } from './api'
+import { fetchPods, fetchNamespaces, deletePod, scaleDeployment } from './api'
 
 const mockFetch = vi.fn()
 globalThis.fetch = mockFetch as any
@@ -31,5 +31,24 @@ describe('fetchNamespaces', () => {
     mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: ['default', 'kube-system'] }) })
     const result = await fetchNamespaces()
     expect(result).toEqual(['default', 'kube-system'])
+  })
+})
+
+describe('deletePod', () => {
+  it('calls DELETE endpoint', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true })
+    await deletePod('default', 'nginx')
+    expect(mockFetch).toHaveBeenCalledWith('/api/v1/pods/default/nginx', { method: 'DELETE' })
+  })
+})
+
+describe('scaleDeployment', () => {
+  it('calls POST with replicas body', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true })
+    await scaleDeployment('default', 'api', 3)
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/v1/deployments/default/api/scale',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ replicas: 3 }) })
+    )
   })
 })
