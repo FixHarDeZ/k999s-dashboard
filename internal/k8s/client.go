@@ -10,12 +10,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
 // Client wraps the Kubernetes clientset with domain-specific methods.
 type Client struct {
 	kube           kubernetes.Interface
+	restConfig     *rest.Config // needed for exec; nil in test clients
 	currentContext string
 	kubeconfigPath string
 }
@@ -40,7 +42,12 @@ func NewClient(kubeconfigPath, context string) (*Client, error) {
 		return nil, fmt.Errorf("create clientset: %w", err)
 	}
 	rawConfig, _ := kubeConfig.RawConfig()
-	return &Client{kube: clientset, currentContext: rawConfig.CurrentContext, kubeconfigPath: kubeconfigPath}, nil
+	return &Client{
+		kube:           clientset,
+		restConfig:     restConfig,
+		currentContext: rawConfig.CurrentContext,
+		kubeconfigPath: kubeconfigPath,
+	}, nil
 }
 
 // NewClientFromKubernetesClient creates a client from an existing kubernetes.Interface (for testing).
