@@ -1,0 +1,5 @@
+/k999s
+web/node_modules/
+web/dist/
+.superpowers/
+*.env
