@@ -30,41 +30,44 @@ func NewRouter(k8sClient *k8s.Client, webFS embed.FS, hub *ws.Hub) *Router {
 	r.engine.Use(corsMiddleware())
 
 	v1 := r.engine.Group("/api/v1")
+	// Lists
 	v1.GET("/pods", r.handleListPods)
 	v1.GET("/namespaces", r.handleListNamespaces)
 	v1.GET("/contexts", r.handleListContexts)
 	v1.GET("/deployments", r.handleListDeployments)
-
-	// Pod actions
-	v1.DELETE("/pods/:namespace/:name", r.handleDeletePod)
-	v1.POST("/pods/:namespace/:name/restart", r.handleRestartPod)
-
-	// Deployment actions
-	v1.POST("/deployments/:namespace/:name/scale", r.handleScaleDeployment)
-	v1.POST("/deployments/:namespace/:name/rollout-restart", r.handleRolloutRestartDeployment)
-	v1.DELETE("/deployments/:namespace/:name", r.handleDeleteDeployment)
-
-	// Resource lists
 	v1.GET("/services", r.handleListServices)
 	v1.GET("/nodes", r.handleListNodes)
 	v1.GET("/namespace-summaries", r.handleListNamespaceSummaries)
 	v1.GET("/configmaps", r.handleListConfigMaps)
 	v1.GET("/secrets", r.handleListSecrets)
+	v1.GET("/events", r.handleListEvents)
+	v1.GET("/pod-metrics", r.handlePodMetrics)
+	v1.GET("/node-metrics", r.handleNodeMetrics)
+	v1.GET("/pods/:namespace/:name/containers", r.handlePodContainers)
 
-	// WebSocket — only if hub is provided
+	// Actions
+	v1.DELETE("/pods/:namespace/:name", r.handleDeletePod)
+	v1.POST("/pods/:namespace/:name/restart", r.handleRestartPod)
+	v1.POST("/deployments/:namespace/:name/scale", r.handleScaleDeployment)
+	v1.POST("/deployments/:namespace/:name/rollout-restart", r.handleRolloutRestartDeployment)
+	v1.DELETE("/deployments/:namespace/:name", r.handleDeleteDeployment)
+
+	// Pod streaming WebSocket (dedicated per-connection, not hub broadcast)
+	r.engine.GET("/ws/pods/:namespace/:name/logs", r.handlePodLogs)
+	r.engine.GET("/ws/pods/:namespace/:name/exec", r.handlePodExec)
+
+	// General hub broadcast
 	if hub != nil {
 		r.engine.GET("/ws", r.handleWebSocket)
 	}
 
-	// Serve embedded React SPA — serve index.html for all non-API routes
+	// Serve embedded React SPA
 	sub, err := fs.Sub(webFS, "dist")
 	if err == nil {
 		fileServer := http.FileServer(http.FS(sub))
 		r.engine.NoRoute(func(c *gin.Context) {
-			// Try to serve the file; fall back to index.html for SPA routing
 			path := c.Request.URL.Path
 			if _, statErr := fs.Stat(sub, path[1:]); statErr != nil {
-				// File not found — serve index.html for client-side routing
 				c.Request.URL.Path = "/"
 			}
 			fileServer.ServeHTTP(c.Writer, c.Request)
