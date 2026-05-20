@@ -14,10 +14,19 @@ import (
 	"github.com/k999s/dashboard/internal/ws"
 )
 
+// Version is injected at build time via -ldflags.
+var Version = "dev"
+
 func main() {
 	port := flag.Int("port", 8080, "HTTP server port")
 	kubeconfig := flag.String("kubeconfig", "", "Path to kubeconfig (default: ~/.kube/config)")
+	showVersion := flag.Bool("version", false, "Print version and exit")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("k999s %s\n", Version)
+		return
+	}
 
 	cfg, err := config.Load(*kubeconfig)
 	if err != nil {
@@ -34,7 +43,7 @@ func main() {
 	addr := fmt.Sprintf(":%d", *port)
 	url := fmt.Sprintf("http://localhost:%d", *port)
 
-	log.Printf("k999s starting on %s", url)
+	log.Printf("k999s %s starting on %s", Version, url)
 	go openBrowser(url)
 
 	if err := router.Run(addr); err != nil {
