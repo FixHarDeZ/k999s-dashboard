@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fetchPods, fetchNamespaces, deletePod, scaleDeployment, fetchEvents } from './api'
+import { fetchPods, fetchNamespaces, deletePod, scaleDeployment, fetchEvents, fetchTopology } from './api'
 
 const mockFetch = vi.fn()
 globalThis.fetch = mockFetch as any
@@ -58,5 +58,13 @@ describe('fetchEvents', () => {
     mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: [] }) })
     await fetchEvents('default')
     expect(mockFetch).toHaveBeenCalledWith('/api/v1/events?namespace=default')
+  })
+})
+
+describe('fetchTopology', () => {
+  it('calls topology endpoint with namespace', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ nodes: [], edges: [] }) })
+    await fetchTopology('default')
+    expect(mockFetch).toHaveBeenCalledWith('/api/v1/topology?namespace=default')
   })
 })

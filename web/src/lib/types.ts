@@ -89,3 +89,31 @@ export interface NodeMetricsSummary {
   cpu: string
   memory: string
 }
+
+export interface TopologyNode {
+  id: string
+  kind: 'Pod' | 'Deployment' | 'Service' | 'Ingress' | string
+  name: string
+  namespace: string
+  status: string
+  labels?: Record<string, string>
+}
+
+export interface TopologyEdge {
+  source: string
+  target: string
+  label: string
+}
+
+export interface TopologyGraph {
+  nodes: TopologyNode[]
+  edges: TopologyEdge[]
+}
+
+export interface APIResourceInfo {
+  name: string
+  kind: string
+  group: string
+  version: string
+  namespaced: boolean
+}

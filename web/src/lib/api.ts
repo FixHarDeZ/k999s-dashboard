@@ -1,4 +1,4 @@
-import type { PodSummary, DeploymentSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary } from './types'
+import type { PodSummary, DeploymentSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary, TopologyGraph, APIResourceInfo } from './types'
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path)
@@ -108,4 +108,31 @@ export function podExecWsUrl(namespace: string, name: string, container: string)
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   const params = new URLSearchParams({ container })
   return `${protocol}//${window.location.host}/ws/pods/${namespace}/${name}/exec?${params}`
+}
+
+export async function fetchTopology(namespace: string): Promise<TopologyGraph> {
+  return get<TopologyGraph>(`/api/v1/topology?namespace=${namespace}`)
+}
+
+export async function fetchAPIResources(): Promise<APIResourceInfo[]> {
+  const data = await get<{ items: APIResourceInfo[] }>('/api/v1/api-resources')
+  return data.items
+}
+
+export async function fetchResourceList(
+  group: string, version: string, resource: string, namespace: string
+): Promise<Record<string, unknown>[]> {
+  const params = new URLSearchParams({ group, version, resource, namespace })
+  const data = await get<{ items: Record<string, unknown>[] }>(`/api/v1/resource-list?${params}`)
+  return data.items
+}
+
+export async function fetchResourceGet(
+  group: string, version: string, resource: string, namespace: string, name: string
+): Promise<string> {
+  const params = new URLSearchParams({ group, version, resource, namespace, name })
+  const res = await fetch(`/api/v1/resource-get?${params}`)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const json = await res.json()
+  return JSON.stringify(json, null, 2)
 }
