@@ -10,7 +10,8 @@ import {
   type SortingState,
 } from '@tanstack/react-table'
 import { RefreshCw, Trash2, Terminal, FileText } from 'lucide-react'
-import { fetchPods, deletePod, restartPod } from '@/lib/api'
+import { fetchPods, deletePod, restartPod, fetchPodContainers } from '@/lib/api'
+import { LogViewer } from '@/components/LogViewer'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import type { PodSummary } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -34,6 +35,12 @@ export function Pods() {
   const [pods, setPods] = useState<PodSummary[]>([])
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState('')
+  const [logTarget, setLogTarget] = useState<{ pod: PodSummary; containers: string[] } | null>(null)
+
+  const handleOpenLogs = async (pod: PodSummary) => {
+    const containers = await fetchPodContainers(pod.namespace, pod.name).catch(() => [pod.name])
+    setLogTarget({ pod, containers })
+  }
 
   const load = useCallback(() => {
     fetchPods(namespace).then(setPods).catch(console.error)
@@ -73,7 +80,7 @@ export function Pods() {
       header: 'Actions',
       cell: ({ row }) => (
         <div className="flex gap-1">
-          <button className="p-1 text-gray-400 rounded text-xs flex items-center gap-1 cursor-not-allowed" title="Logs — Plan 3" disabled><FileText size={11} />Logs</button>
+          <button onClick={() => handleOpenLogs(row.original)} className="p-1 text-primary-600 hover:bg-primary-50 rounded text-xs flex items-center gap-1"><FileText size={11} />Logs</button>
           <button className="p-1 text-gray-400 rounded text-xs flex items-center gap-1 cursor-not-allowed" title="Exec — Plan 3" disabled><Terminal size={11} />Exec</button>
           <button onClick={() => handleRestart(row.original)} className="p-1 text-primary-600 hover:bg-primary-50 rounded text-xs flex items-center gap-1"><RefreshCw size={11} />Restart</button>
           <button onClick={() => handleDelete(row.original)} className="p-1 text-red-500 hover:bg-red-50 rounded text-xs flex items-center gap-1"><Trash2 size={11} />Delete</button>
@@ -139,6 +146,14 @@ export function Pods() {
           </tbody>
         </table>
       </div>
+      {logTarget && (
+        <LogViewer
+          namespace={logTarget.pod.namespace}
+          podName={logTarget.pod.name}
+          containers={logTarget.containers}
+          onClose={() => setLogTarget(null)}
+        />
+      )}
     </div>
   )
 }
