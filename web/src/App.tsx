@@ -7,6 +7,8 @@ import { Nodes } from '@/pages/Nodes'
 import { Namespaces } from '@/pages/Namespaces'
 import { ConfigMaps } from '@/pages/ConfigMaps'
 import { Secrets } from '@/pages/Secrets'
+import { Events } from '@/pages/Events'
+import { Top } from '@/pages/Top'
 
 function Placeholder({ title }: { title: string }) {
   return <div className="text-primary-700 font-medium">{title} — coming soon</div>
@@ -17,6 +19,8 @@ export default function App() {
     <Routes>
       <Route element={<AppLayout />}>
         <Route path="/" element={<Placeholder title="Cluster Overview" />} />
+        <Route path="/events" element={<Events />} />
+        <Route path="/top" element={<Top />} />
         <Route path="/pods" element={<Pods />} />
         <Route path="/deployments" element={<Deployments />} />
         <Route path="/statefulsets" element={<Placeholder title="StatefulSets" />} />

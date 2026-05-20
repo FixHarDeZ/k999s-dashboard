@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Box, Rocket, Globe, Settings, Server, FolderOpen, Telescope, LayoutDashboard, Cpu, Lock } from 'lucide-react'
+import { Box, Rocket, Globe, Settings, Server, FolderOpen, Telescope, LayoutDashboard, Cpu, Lock, Activity, BarChart2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface NavItem {
@@ -18,6 +18,8 @@ const navGroups: NavGroup[] = [
     title: 'Overview',
     items: [
       { label: 'Cluster Overview', to: '/', icon: <LayoutDashboard size={14} /> },
+      { label: 'Events', to: '/events', icon: <Activity size={14} /> },
+      { label: 'Top', to: '/top', icon: <BarChart2 size={14} /> },
     ],
   },
   {
