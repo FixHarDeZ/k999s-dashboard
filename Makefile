@@ -13,6 +13,7 @@ build:
 
 test:
 	go test ./... -v
+	cd web && npx vitest run
 
 lint:
 	golangci-lint run
