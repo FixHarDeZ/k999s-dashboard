@@ -57,3 +57,28 @@ func TestListNamespaces_ReturnsList(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, namespaces, 2)
 }
+
+func TestListServices_ReturnsList(t *testing.T) {
+	fakeClient := fake.NewSimpleClientset(
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: "svc-1", Namespace: "default"},
+			Spec:       corev1.ServiceSpec{Type: corev1.ServiceTypeClusterIP, ClusterIP: "10.0.0.1"},
+		},
+	)
+	client := k8s.NewClientFromKubernetesClient(fakeClient, "")
+	svcs, err := client.ListServices(context.Background(), "default")
+	require.NoError(t, err)
+	assert.Len(t, svcs, 1)
+	assert.Equal(t, "svc-1", svcs[0].Name)
+}
+
+func TestListNodes_ReturnsList(t *testing.T) {
+	fakeClient := fake.NewSimpleClientset(
+		&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node-1"}},
+	)
+	client := k8s.NewClientFromKubernetesClient(fakeClient, "")
+	nodes, err := client.ListNodes(context.Background())
+	require.NoError(t, err)
+	assert.Len(t, nodes, 1)
+	assert.Equal(t, "node-1", nodes[0].Name)
+}

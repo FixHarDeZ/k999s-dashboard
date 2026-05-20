@@ -28,3 +28,41 @@ type ContextInfo struct {
 	Current bool   `json:"current"`
 	Cluster string `json:"cluster"`
 }
+
+type ServiceSummary struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Type      string `json:"type"`
+	ClusterIP string `json:"clusterIP"`
+	Ports     string `json:"ports"`
+	Age       string `json:"age"`
+}
+
+type NodeSummary struct {
+	Name    string `json:"name"`
+	Status  string `json:"status"`
+	Roles   string `json:"roles"`
+	Age     string `json:"age"`
+	Version string `json:"version"`
+}
+
+type NamespaceSummary struct {
+	Name   string `json:"name"`
+	Status string `json:"status"`
+	Age    string `json:"age"`
+}
+
+type ConfigMapSummary struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	DataCount int    `json:"dataCount"`
+	Age       string `json:"age"`
+}
+
+type SecretSummary struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Type      string `json:"type"`
+	DataCount int    `json:"dataCount"`
+	Age       string `json:"age"`
+}

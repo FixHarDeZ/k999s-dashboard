@@ -3,6 +3,7 @@ package k8s
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -154,4 +155,112 @@ func formatAge(t time.Time) string {
 	default:
 		return fmt.Sprintf("%dd", int(d.Hours()/24))
 	}
+}
+
+func (c *Client) ListServices(ctx context.Context, namespace string) ([]ServiceSummary, error) {
+	list, err := c.kube.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]ServiceSummary, 0, len(list.Items))
+	for _, s := range list.Items {
+		ports := make([]string, 0, len(s.Spec.Ports))
+		for _, p := range s.Spec.Ports {
+			ports = append(ports, fmt.Sprintf("%d/%s", p.Port, p.Protocol))
+		}
+		out = append(out, ServiceSummary{
+			Name:      s.Name,
+			Namespace: s.Namespace,
+			Type:      string(s.Spec.Type),
+			ClusterIP: s.Spec.ClusterIP,
+			Ports:     strings.Join(ports, ", "),
+			Age:       formatAge(s.CreationTimestamp.Time),
+		})
+	}
+	return out, nil
+}
+
+func (c *Client) ListNodes(ctx context.Context) ([]NodeSummary, error) {
+	list, err := c.kube.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]NodeSummary, 0, len(list.Items))
+	for _, n := range list.Items {
+		status := "NotReady"
+		for _, cond := range n.Status.Conditions {
+			if cond.Type == corev1.NodeReady && cond.Status == corev1.ConditionTrue {
+				status = "Ready"
+			}
+		}
+		roles := []string{}
+		for k := range n.Labels {
+			if strings.HasPrefix(k, "node-role.kubernetes.io/") {
+				roles = append(roles, strings.TrimPrefix(k, "node-role.kubernetes.io/"))
+			}
+		}
+		rolesStr := strings.Join(roles, ",")
+		if rolesStr == "" {
+			rolesStr = "<none>"
+		}
+		out = append(out, NodeSummary{
+			Name:    n.Name,
+			Status:  status,
+			Roles:   rolesStr,
+			Age:     formatAge(n.CreationTimestamp.Time),
+			Version: n.Status.NodeInfo.KubeletVersion,
+		})
+	}
+	return out, nil
+}
+
+func (c *Client) ListNamespaceSummaries(ctx context.Context) ([]NamespaceSummary, error) {
+	list, err := c.kube.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]NamespaceSummary, 0, len(list.Items))
+	for _, n := range list.Items {
+		out = append(out, NamespaceSummary{
+			Name:   n.Name,
+			Status: string(n.Status.Phase),
+			Age:    formatAge(n.CreationTimestamp.Time),
+		})
+	}
+	return out, nil
+}
+
+func (c *Client) ListConfigMaps(ctx context.Context, namespace string) ([]ConfigMapSummary, error) {
+	list, err := c.kube.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]ConfigMapSummary, 0, len(list.Items))
+	for _, cm := range list.Items {
+		out = append(out, ConfigMapSummary{
+			Name:      cm.Name,
+			Namespace: cm.Namespace,
+			DataCount: len(cm.Data),
+			Age:       formatAge(cm.CreationTimestamp.Time),
+		})
+	}
+	return out, nil
+}
+
+func (c *Client) ListSecrets(ctx context.Context, namespace string) ([]SecretSummary, error) {
+	list, err := c.kube.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]SecretSummary, 0, len(list.Items))
+	for _, s := range list.Items {
+		out = append(out, SecretSummary{
+			Name:      s.Name,
+			Namespace: s.Namespace,
+			Type:      string(s.Type),
+			DataCount: len(s.Data),
+			Age:       formatAge(s.CreationTimestamp.Time),
+		})
+	}
+	return out, nil
 }
