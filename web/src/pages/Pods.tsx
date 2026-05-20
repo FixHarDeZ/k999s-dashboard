@@ -12,6 +12,7 @@ import {
 import { RefreshCw, Trash2, Terminal, FileText } from 'lucide-react'
 import { fetchPods, deletePod, restartPod, fetchPodContainers } from '@/lib/api'
 import { LogViewer } from '@/components/LogViewer'
+import { ExecTerminal } from '@/components/ExecTerminal'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import type { PodSummary } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -36,6 +37,12 @@ export function Pods() {
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState('')
   const [logTarget, setLogTarget] = useState<{ pod: PodSummary; containers: string[] } | null>(null)
+  const [execTarget, setExecTarget] = useState<{ pod: PodSummary; container: string } | null>(null)
+
+  const handleOpenExec = async (pod: PodSummary) => {
+    const containers = await fetchPodContainers(pod.namespace, pod.name).catch(() => [])
+    setExecTarget({ pod, container: containers[0] ?? '' })
+  }
 
   const handleOpenLogs = async (pod: PodSummary) => {
     const containers = await fetchPodContainers(pod.namespace, pod.name).catch(() => [pod.name])
@@ -81,7 +88,7 @@ export function Pods() {
       cell: ({ row }) => (
         <div className="flex gap-1">
           <button onClick={() => handleOpenLogs(row.original)} className="p-1 text-primary-600 hover:bg-primary-50 rounded text-xs flex items-center gap-1"><FileText size={11} />Logs</button>
-          <button className="p-1 text-gray-400 rounded text-xs flex items-center gap-1 cursor-not-allowed" title="Exec — Plan 3" disabled><Terminal size={11} />Exec</button>
+          <button onClick={() => handleOpenExec(row.original)} className="p-1 text-primary-600 hover:bg-primary-50 rounded text-xs flex items-center gap-1"><Terminal size={11} />Exec</button>
           <button onClick={() => handleRestart(row.original)} className="p-1 text-primary-600 hover:bg-primary-50 rounded text-xs flex items-center gap-1"><RefreshCw size={11} />Restart</button>
           <button onClick={() => handleDelete(row.original)} className="p-1 text-red-500 hover:bg-red-50 rounded text-xs flex items-center gap-1"><Trash2 size={11} />Delete</button>
         </div>
@@ -152,6 +159,14 @@ export function Pods() {
           podName={logTarget.pod.name}
           containers={logTarget.containers}
           onClose={() => setLogTarget(null)}
+        />
+      )}
+      {execTarget && (
+        <ExecTerminal
+          namespace={execTarget.pod.namespace}
+          podName={execTarget.pod.name}
+          container={execTarget.container}
+          onClose={() => setExecTarget(null)}
         />
       )}
     </div>
