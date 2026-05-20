@@ -1,0 +1,59 @@
+package k8s_test
+
+import (
+	"context"
+	"testing"
+
+	"github.com/k999s/dashboard/internal/k8s"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/fake"
+)
+
+func TestListPods_ReturnsPodsInNamespace(t *testing.T) {
+	fakeClient := fake.NewSimpleClientset(
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "pod-1", Namespace: "default"},
+			Status:     corev1.PodStatus{Phase: corev1.PodRunning},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "pod-2", Namespace: "other"},
+			Status:     corev1.PodStatus{Phase: corev1.PodRunning},
+		},
+	)
+
+	client := k8s.NewClientFromKubernetesClient(fakeClient, "")
+	pods, err := client.ListPods(context.Background(), "default")
+
+	require.NoError(t, err)
+	assert.Len(t, pods, 1)
+	assert.Equal(t, "pod-1", pods[0].Name)
+}
+
+func TestListPods_AllNamespaces(t *testing.T) {
+	fakeClient := fake.NewSimpleClientset(
+		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "pod-1", Namespace: "default"}},
+		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "pod-2", Namespace: "other"}},
+	)
+
+	client := k8s.NewClientFromKubernetesClient(fakeClient, "")
+	pods, err := client.ListPods(context.Background(), "")
+
+	require.NoError(t, err)
+	assert.Len(t, pods, 2)
+}
+
+func TestListNamespaces_ReturnsList(t *testing.T) {
+	fakeClient := fake.NewSimpleClientset(
+		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}},
+		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "kube-system"}},
+	)
+
+	client := k8s.NewClientFromKubernetesClient(fakeClient, "")
+	namespaces, err := client.ListNamespaces(context.Background())
+
+	require.NoError(t, err)
+	assert.Len(t, namespaces, 2)
+}
