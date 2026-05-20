@@ -28,6 +28,22 @@ func NewRouter(k8sClient *k8s.Client, webFS embed.FS) *Router {
 	v1.GET("/contexts", r.handleListContexts)
 	v1.GET("/deployments", r.handleListDeployments)
 
+	// Pod actions
+	v1.DELETE("/pods/:namespace/:name", r.handleDeletePod)
+	v1.POST("/pods/:namespace/:name/restart", r.handleRestartPod)
+
+	// Deployment actions
+	v1.POST("/deployments/:namespace/:name/scale", r.handleScaleDeployment)
+	v1.POST("/deployments/:namespace/:name/rollout-restart", r.handleRolloutRestartDeployment)
+	v1.DELETE("/deployments/:namespace/:name", r.handleDeleteDeployment)
+
+	// Resource lists
+	v1.GET("/services", r.handleListServices)
+	v1.GET("/nodes", r.handleListNodes)
+	v1.GET("/namespace-summaries", r.handleListNamespaceSummaries)
+	v1.GET("/configmaps", r.handleListConfigMaps)
+	v1.GET("/secrets", r.handleListSecrets)
+
 	// Serve embedded React SPA — serve index.html for all non-API routes
 	sub, err := fs.Sub(webFS, "dist")
 	if err == nil {

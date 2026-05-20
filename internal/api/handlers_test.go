@@ -56,3 +56,19 @@ func TestGetNamespaces_ReturnsList(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	assert.Contains(t, resp.Items, "default")
 }
+
+func TestDeletePod_Returns204(t *testing.T) {
+	router := newTestRouter()
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("DELETE", "/api/v1/pods/default/nginx", nil)
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusNoContent, w.Code)
+}
+
+func TestGetServices_ReturnsList(t *testing.T) {
+	router := newTestRouter()
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/api/v1/services?namespace=default", nil)
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+}
