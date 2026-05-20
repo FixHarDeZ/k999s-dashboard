@@ -6,19 +6,26 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/k999s/dashboard/internal/k8s"
+	"github.com/k999s/dashboard/internal/ws"
 )
 
 // Router wraps gin.Engine and holds dependencies.
 type Router struct {
 	engine *gin.Engine
 	k8s    *k8s.Client
+	hub    *ws.Hub
+}
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
 // NewRouter wires all HTTP routes. webFS is the embedded web/dist directory.
-func NewRouter(k8sClient *k8s.Client, webFS embed.FS) *Router {
+func NewRouter(k8sClient *k8s.Client, webFS embed.FS, hub *ws.Hub) *Router {
 	gin.SetMode(gin.ReleaseMode)
-	r := &Router{engine: gin.New(), k8s: k8sClient}
+	r := &Router{engine: gin.New(), k8s: k8sClient, hub: hub}
 	r.engine.Use(gin.Recovery())
 	r.engine.Use(corsMiddleware())
 
@@ -43,6 +50,11 @@ func NewRouter(k8sClient *k8s.Client, webFS embed.FS) *Router {
 	v1.GET("/namespace-summaries", r.handleListNamespaceSummaries)
 	v1.GET("/configmaps", r.handleListConfigMaps)
 	v1.GET("/secrets", r.handleListSecrets)
+
+	// WebSocket — only if hub is provided
+	if hub != nil {
+		r.engine.GET("/ws", r.handleWebSocket)
+	}
 
 	// Serve embedded React SPA — serve index.html for all non-API routes
 	sub, err := fs.Sub(webFS, "dist")

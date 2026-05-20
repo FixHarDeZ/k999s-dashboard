@@ -140,3 +140,17 @@ func (r *Router) handleListSecrets(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"items": secrets})
 }
+
+func (r *Router) handleWebSocket(c *gin.Context) {
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		return
+	}
+	r.hub.Register(conn)
+	defer r.hub.Unregister(conn)
+	for {
+		if _, _, err := conn.ReadMessage(); err != nil {
+			break
+		}
+	}
+}
