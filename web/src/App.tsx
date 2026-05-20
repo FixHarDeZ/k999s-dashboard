@@ -9,6 +9,8 @@ import { ConfigMaps } from '@/pages/ConfigMaps'
 import { Secrets } from '@/pages/Secrets'
 import { Events } from '@/pages/Events'
 import { Top } from '@/pages/Top'
+import { Topology } from '@/pages/Topology'
+import { ResourceExplorer } from '@/pages/ResourceExplorer'
 
 function Placeholder({ title }: { title: string }) {
   return <div className="text-primary-700 font-medium">{title} — coming soon</div>
@@ -19,6 +21,7 @@ export default function App() {
     <Routes>
       <Route element={<AppLayout />}>
         <Route path="/" element={<Placeholder title="Cluster Overview" />} />
+        <Route path="/topology" element={<Topology />} />
         <Route path="/events" element={<Events />} />
         <Route path="/top" element={<Top />} />
         <Route path="/pods" element={<Pods />} />
@@ -29,7 +32,7 @@ export default function App() {
         <Route path="/secrets" element={<Secrets />} />
         <Route path="/nodes" element={<Nodes />} />
         <Route path="/namespaces" element={<Namespaces />} />
-        <Route path="/explorer" element={<Placeholder title="Resource Explorer" />} />
+        <Route path="/explorer" element={<ResourceExplorer />} />
       </Route>
     </Routes>
   )
