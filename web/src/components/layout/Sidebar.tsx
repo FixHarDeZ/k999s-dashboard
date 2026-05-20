@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
-import { Box, Rocket, Globe, Settings, Server, FolderOpen, Telescope, LayoutDashboard, Cpu, Lock, Activity, BarChart2, GitBranch } from 'lucide-react'
+import { Box, Rocket, Globe, Settings, Server, FolderOpen, Telescope, LayoutDashboard, Cpu, Lock, Activity, BarChart2, GitBranch, Layers, Waypoints, Bird } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { CRDPresence } from '@/lib/types'
 
 interface NavItem {
   label: string
@@ -13,48 +14,55 @@ interface NavGroup {
   items: NavItem[]
 }
 
-const navGroups: NavGroup[] = [
-  {
-    title: 'Overview',
-    items: [
-      { label: 'Cluster Overview', to: '/', icon: <LayoutDashboard size={14} /> },
-      { label: 'Topology', to: '/topology', icon: <GitBranch size={14} /> },
-      { label: 'Events', to: '/events', icon: <Activity size={14} /> },
-      { label: 'Top', to: '/top', icon: <BarChart2 size={14} /> },
-    ],
-  },
-  {
-    title: 'Workloads',
-    items: [
-      { label: 'Pods', to: '/pods', icon: <Box size={14} /> },
-      { label: 'Deployments', to: '/deployments', icon: <Rocket size={14} /> },
-      { label: 'StatefulSets', to: '/statefulsets', icon: <Server size={14} /> },
-    ],
-  },
-  {
-    title: 'Network',
-    items: [
-      { label: 'Services', to: '/services', icon: <Globe size={14} /> },
-    ],
-  },
-  {
-    title: 'Config & Storage',
-    items: [
-      { label: 'ConfigMaps', to: '/configmaps', icon: <Settings size={14} /> },
-      { label: 'Secrets', to: '/secrets', icon: <Lock size={14} /> },
-    ],
-  },
-  {
-    title: 'Cluster',
-    items: [
-      { label: 'Nodes', to: '/nodes', icon: <Cpu size={14} /> },
-      { label: 'Namespaces', to: '/namespaces', icon: <FolderOpen size={14} /> },
-      { label: 'Resource Explorer', to: '/explorer', icon: <Telescope size={14} /> },
-    ],
-  },
-]
+interface SidebarProps {
+  detectedCRDs?: CRDPresence
+}
 
-export function Sidebar() {
+export function Sidebar({ detectedCRDs }: SidebarProps) {
+  const navGroups: NavGroup[] = [
+    {
+      title: 'Overview',
+      items: [
+        { label: 'Cluster Overview', to: '/', icon: <LayoutDashboard size={14} /> },
+        { label: 'Topology', to: '/topology', icon: <GitBranch size={14} /> },
+        { label: 'Events', to: '/events', icon: <Activity size={14} /> },
+        { label: 'Top', to: '/top', icon: <BarChart2 size={14} /> },
+      ],
+    },
+    {
+      title: 'Workloads',
+      items: [
+        { label: 'Pods', to: '/pods', icon: <Box size={14} /> },
+        { label: 'Deployments', to: '/deployments', icon: <Rocket size={14} /> },
+        { label: 'StatefulSets', to: '/statefulsets', icon: <Server size={14} /> },
+      ],
+    },
+    {
+      title: 'Network',
+      items: [
+        { label: 'Services', to: '/services', icon: <Globe size={14} /> },
+        ...(detectedCRDs?.istio ? [{ label: 'Istio', to: '/istio', icon: <Layers size={14} /> }] : []),
+        ...(detectedCRDs?.gatewayApi ? [{ label: 'Gateway API', to: '/gateway', icon: <Waypoints size={14} /> }] : []),
+        ...(detectedCRDs?.canary ? [{ label: 'Canary', to: '/canary', icon: <Bird size={14} /> }] : []),
+      ],
+    },
+    {
+      title: 'Config & Storage',
+      items: [
+        { label: 'ConfigMaps', to: '/configmaps', icon: <Settings size={14} /> },
+        { label: 'Secrets', to: '/secrets', icon: <Lock size={14} /> },
+      ],
+    },
+    {
+      title: 'Cluster',
+      items: [
+        { label: 'Nodes', to: '/nodes', icon: <Cpu size={14} /> },
+        { label: 'Namespaces', to: '/namespaces', icon: <FolderOpen size={14} /> },
+        { label: 'Resource Explorer', to: '/explorer', icon: <Telescope size={14} /> },
+      ],
+    },
+  ]
+
   return (
     <aside className="w-48 bg-[#f8f7ff] border-r border-primary-100 flex-shrink-0 overflow-y-auto">
       <div className="px-3 py-4">
