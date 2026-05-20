@@ -16,7 +16,7 @@ export function TopBar({ context, namespace, namespaces, contexts, onNamespaceCh
         <select
           value={context}
           onChange={(e) => onContextChange(e.target.value)}
-          className="bg-white/15 rounded-md px-2 py-1 text-[11px] border-0 outline-none cursor-pointer hover:bg-white/20"
+          className="bg-white/15 text-white rounded-md px-2 py-1 text-[11px] border-0 outline-none cursor-pointer hover:bg-white/20"
         >
           {contexts.map((ctx) => (
             <option key={ctx} value={ctx} className="text-black">{ctx}</option>
@@ -26,7 +26,7 @@ export function TopBar({ context, namespace, namespaces, contexts, onNamespaceCh
         <select
           value={namespace}
           onChange={(e) => onNamespaceChange(e.target.value)}
-          className="bg-white/15 rounded-md px-2 py-1 text-[11px] border-0 outline-none cursor-pointer hover:bg-white/20"
+          className="bg-white/15 text-white rounded-md px-2 py-1 text-[11px] border-0 outline-none cursor-pointer hover:bg-white/20"
         >
           <option value="">All Namespaces</option>
           {namespaces.map((ns) => (
