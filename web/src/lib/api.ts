@@ -1,4 +1,4 @@
-import type { PodSummary, DeploymentSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary } from './types'
+import type { PodSummary, DeploymentSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary } from './types'
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path)
@@ -74,4 +74,38 @@ export async function fetchConfigMaps(namespace: string): Promise<ConfigMapSumma
 export async function fetchSecrets(namespace: string): Promise<SecretSummary[]> {
   const data = await get<{ items: SecretSummary[] }>(`/api/v1/secrets?namespace=${namespace}`)
   return data.items
+}
+
+export async function fetchEvents(namespace: string): Promise<EventSummary[]> {
+  const data = await get<{ items: EventSummary[] }>(`/api/v1/events?namespace=${namespace}`)
+  return data.items
+}
+
+export async function fetchPodMetrics(namespace: string): Promise<PodMetricsSummary[]> {
+  const data = await get<{ items: PodMetricsSummary[] }>(`/api/v1/pod-metrics?namespace=${namespace}`)
+  return data.items
+}
+
+export async function fetchNodeMetrics(): Promise<NodeMetricsSummary[]> {
+  const data = await get<{ items: NodeMetricsSummary[] }>('/api/v1/node-metrics')
+  return data.items
+}
+
+export async function fetchPodContainers(namespace: string, podName: string): Promise<string[]> {
+  const data = await get<{ items: string[] }>(`/api/v1/pods/${namespace}/${podName}/containers`)
+  return data.items
+}
+
+/** Returns a WebSocket URL for pod log streaming */
+export function podLogsWsUrl(namespace: string, name: string, container: string, follow: boolean, previous: boolean): string {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  const params = new URLSearchParams({ container, follow: String(follow), previous: String(previous) })
+  return `${protocol}//${window.location.host}/ws/pods/${namespace}/${name}/logs?${params}`
+}
+
+/** Returns a WebSocket URL for pod exec */
+export function podExecWsUrl(namespace: string, name: string, container: string): string {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  const params = new URLSearchParams({ container })
+  return `${protocol}//${window.location.host}/ws/pods/${namespace}/${name}/exec?${params}`
 }

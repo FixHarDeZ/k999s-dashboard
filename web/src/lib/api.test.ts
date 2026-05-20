@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fetchPods, fetchNamespaces, deletePod, scaleDeployment } from './api'
+import { fetchPods, fetchNamespaces, deletePod, scaleDeployment, fetchEvents } from './api'
 
 const mockFetch = vi.fn()
 globalThis.fetch = mockFetch as any
@@ -50,5 +50,13 @@ describe('scaleDeployment', () => {
       '/api/v1/deployments/default/api/scale',
       expect.objectContaining({ method: 'POST', body: JSON.stringify({ replicas: 3 }) })
     )
+  })
+})
+
+describe('fetchEvents', () => {
+  it('calls events endpoint with namespace', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: [] }) })
+    await fetchEvents('default')
+    expect(mockFetch).toHaveBeenCalledWith('/api/v1/events?namespace=default')
   })
 })

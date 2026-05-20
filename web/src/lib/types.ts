@@ -65,3 +65,27 @@ export interface SecretSummary {
   dataCount: number
   age: string
 }
+
+export interface EventSummary {
+  name: string
+  namespace: string
+  reason: string
+  message: string
+  type: 'Normal' | 'Warning' | string
+  object: string
+  count: number
+  age: string
+}
+
+export interface PodMetricsSummary {
+  name: string
+  namespace: string
+  cpu: string
+  memory: string
+}
+
+export interface NodeMetricsSummary {
+  name: string
+  cpu: string
+  memory: string
+}
