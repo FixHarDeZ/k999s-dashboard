@@ -9,6 +9,7 @@ import (
 
 	"github.com/k999s/dashboard/internal/api"
 	"github.com/k999s/dashboard/internal/config"
+	"github.com/k999s/dashboard/internal/diagnostic"
 	"github.com/k999s/dashboard/internal/frontend"
 	"github.com/k999s/dashboard/internal/k8s"
 	"github.com/k999s/dashboard/internal/ws"
@@ -38,8 +39,14 @@ func main() {
 		log.Fatalf("failed to create k8s client: %v", err)
 	}
 
+	provider, provErr := diagnostic.New(cfg.AI)
+	if provErr != nil {
+		log.Printf("AI diagnostic unavailable: %v", provErr)
+		provider = nil
+	}
+
 	hub := ws.NewHub()
-	router := api.NewRouter(k8sClient, frontend.FS, hub)
+	router := api.NewRouter(k8sClient, frontend.FS, hub, provider)
 	addr := fmt.Sprintf(":%d", *port)
 	url := fmt.Sprintf("http://localhost:%d", *port)
 

@@ -3,11 +3,14 @@ package api
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/k999s/dashboard/internal/diagnostic"
 )
 
 func (r *Router) handleListPods(c *gin.Context) {
@@ -342,4 +345,83 @@ func (r *Router) handleResourceGet(c *gin.Context) {
 		return
 	}
 	c.Data(http.StatusOK, "application/json", raw)
+}
+
+func (r *Router) handleDetectedCRDs(c *gin.Context) {
+	presence := r.k8s.DetectCRDs()
+	c.JSON(http.StatusOK, presence)
+}
+
+func (r *Router) handleDiagnose(c *gin.Context) {
+	ns, name := c.Param("namespace"), c.Param("name")
+
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		return
+	}
+	defer conn.Close()
+
+	if r.diagnostic == nil {
+		_ = conn.WriteMessage(websocket.TextMessage, []byte(
+			"AI diagnostic is not configured.\n\nAdd to ~/.k999s/config.yaml:\n\nai:\n  provider: ollama\n  model: llama3.2\n",
+		))
+		return
+	}
+
+	ctx, cancel := context.WithCancel(c.Request.Context())
+	defer cancel()
+
+	go func() {
+		for {
+			if _, _, err := conn.ReadMessage(); err != nil {
+				cancel()
+				return
+			}
+		}
+	}()
+
+	// Collect logs (last 200 lines)
+	var logLines []string
+	stream, err := r.k8s.StreamLogs(ctx, ns, name, "", false, false)
+	if err == nil && stream != nil {
+		scanner := bufio.NewScanner(stream)
+		for scanner.Scan() {
+			logLines = append(logLines, scanner.Text())
+		}
+		stream.Close()
+	}
+	if len(logLines) > 200 {
+		logLines = logLines[len(logLines)-200:]
+	}
+
+	// Collect events for this pod
+	events, _ := r.k8s.ListEvents(ctx, ns)
+	var eventLines []string
+	for _, e := range events {
+		if strings.Contains(e.Object, name) {
+			eventLines = append(eventLines, fmt.Sprintf("[%s] %s: %s", e.Type, e.Reason, e.Message))
+		}
+	}
+
+	input := diagnostic.DiagnosticInput{
+		PodName:   name,
+		Namespace: ns,
+		Logs:      strings.Join(logLines, "\n"),
+		Events:    strings.Join(eventLines, "\n"),
+	}
+
+	ch, err := r.diagnostic.Diagnose(ctx, input)
+	if err != nil {
+		_ = conn.WriteMessage(websocket.TextMessage, []byte("Error: "+err.Error()))
+		return
+	}
+
+	for token := range ch {
+		if ctx.Err() != nil {
+			break
+		}
+		if err := conn.WriteMessage(websocket.TextMessage, []byte(token)); err != nil {
+			break
+		}
+	}
 }

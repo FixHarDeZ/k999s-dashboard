@@ -7,30 +7,29 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/k999s/dashboard/internal/diagnostic"
 	"github.com/k999s/dashboard/internal/k8s"
 	"github.com/k999s/dashboard/internal/ws"
 )
 
-// Router wraps gin.Engine and holds dependencies.
 type Router struct {
-	engine *gin.Engine
-	k8s    *k8s.Client
-	hub    *ws.Hub
+	engine     *gin.Engine
+	k8s        *k8s.Client
+	hub        *ws.Hub
+	diagnostic diagnostic.Provider
 }
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
-// NewRouter wires all HTTP routes. webFS is the embedded web/dist directory.
-func NewRouter(k8sClient *k8s.Client, webFS embed.FS, hub *ws.Hub) *Router {
+func NewRouter(k8sClient *k8s.Client, webFS embed.FS, hub *ws.Hub, diag diagnostic.Provider) *Router {
 	gin.SetMode(gin.ReleaseMode)
-	r := &Router{engine: gin.New(), k8s: k8sClient, hub: hub}
+	r := &Router{engine: gin.New(), k8s: k8sClient, hub: hub, diagnostic: diag}
 	r.engine.Use(gin.Recovery())
 	r.engine.Use(corsMiddleware())
 
 	v1 := r.engine.Group("/api/v1")
-	// Lists
 	v1.GET("/pods", r.handleListPods)
 	v1.GET("/namespaces", r.handleListNamespaces)
 	v1.GET("/contexts", r.handleListContexts)
@@ -48,24 +47,20 @@ func NewRouter(k8sClient *k8s.Client, webFS embed.FS, hub *ws.Hub) *Router {
 	v1.GET("/api-resources", r.handleAPIResources)
 	v1.GET("/resource-list", r.handleResourceList)
 	v1.GET("/resource-get", r.handleResourceGet)
-
-	// Actions
+	v1.GET("/detected-crds", r.handleDetectedCRDs)
 	v1.DELETE("/pods/:namespace/:name", r.handleDeletePod)
 	v1.POST("/pods/:namespace/:name/restart", r.handleRestartPod)
 	v1.POST("/deployments/:namespace/:name/scale", r.handleScaleDeployment)
 	v1.POST("/deployments/:namespace/:name/rollout-restart", r.handleRolloutRestartDeployment)
 	v1.DELETE("/deployments/:namespace/:name", r.handleDeleteDeployment)
 
-	// Pod streaming WebSocket (dedicated per-connection, not hub broadcast)
 	r.engine.GET("/ws/pods/:namespace/:name/logs", r.handlePodLogs)
 	r.engine.GET("/ws/pods/:namespace/:name/exec", r.handlePodExec)
-
-	// General hub broadcast
+	r.engine.GET("/ws/pods/:namespace/:name/diagnose", r.handleDiagnose)
 	if hub != nil {
 		r.engine.GET("/ws", r.handleWebSocket)
 	}
 
-	// Serve embedded React SPA
 	sub, err := fs.Sub(webFS, "dist")
 	if err == nil {
 		fileServer := http.FileServer(http.FS(sub))
@@ -81,19 +76,14 @@ func NewRouter(k8sClient *k8s.Client, webFS embed.FS, hub *ws.Hub) *Router {
 			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		})
 	}
-
 	return r
 }
 
-// ServeHTTP implements http.Handler for testing.
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	r.engine.ServeHTTP(w, req)
 }
 
-// Run starts the HTTP server.
-func (r *Router) Run(addr string) error {
-	return r.engine.Run(addr)
-}
+func (r *Router) Run(addr string) error { return r.engine.Run(addr) }
 
 func corsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {

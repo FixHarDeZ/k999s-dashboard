@@ -25,7 +25,7 @@ func newTestRouter() *api.Router {
 		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}},
 	)
 	client := k8s.NewClientFromKubernetesClient(fakeK8s, "test-context")
-	return api.NewRouter(client, embed.FS{}, nil)
+	return api.NewRouter(client, embed.FS{}, nil, nil)
 }
 
 func TestGetPods_ReturnsJSON(t *testing.T) {
