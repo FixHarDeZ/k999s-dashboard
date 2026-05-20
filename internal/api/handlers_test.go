@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"embed"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -24,7 +25,7 @@ func newTestRouter() *api.Router {
 		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}},
 	)
 	client := k8s.NewClientFromKubernetesClient(fakeK8s, "test-context")
-	return api.NewRouter(client)
+	return api.NewRouter(client, embed.FS{})
 }
 
 func TestGetPods_ReturnsJSON(t *testing.T) {

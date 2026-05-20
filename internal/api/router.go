@@ -1,6 +1,8 @@
 package api
 
 import (
+	"embed"
+	"io/fs"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -13,8 +15,8 @@ type Router struct {
 	k8s    *k8s.Client
 }
 
-// NewRouter wires all HTTP routes.
-func NewRouter(k8sClient *k8s.Client) *Router {
+// NewRouter wires all HTTP routes. webFS is the embedded web/dist directory.
+func NewRouter(k8sClient *k8s.Client, webFS embed.FS) *Router {
 	gin.SetMode(gin.ReleaseMode)
 	r := &Router{engine: gin.New(), k8s: k8sClient}
 	r.engine.Use(gin.Recovery())
@@ -26,9 +28,24 @@ func NewRouter(k8sClient *k8s.Client) *Router {
 	v1.GET("/contexts", r.handleListContexts)
 	v1.GET("/deployments", r.handleListDeployments)
 
-	r.engine.NoRoute(func(c *gin.Context) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
-	})
+	// Serve embedded React SPA — serve index.html for all non-API routes
+	sub, err := fs.Sub(webFS, "dist")
+	if err == nil {
+		fileServer := http.FileServer(http.FS(sub))
+		r.engine.NoRoute(func(c *gin.Context) {
+			// Try to serve the file; fall back to index.html for SPA routing
+			path := c.Request.URL.Path
+			if _, statErr := fs.Stat(sub, path[1:]); statErr != nil {
+				// File not found — serve index.html for client-side routing
+				c.Request.URL.Path = "/"
+			}
+			fileServer.ServeHTTP(c.Writer, c.Request)
+		})
+	} else {
+		r.engine.NoRoute(func(c *gin.Context) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		})
+	}
 
 	return r
 }

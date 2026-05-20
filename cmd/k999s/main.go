@@ -9,6 +9,7 @@ import (
 
 	"github.com/k999s/dashboard/internal/api"
 	"github.com/k999s/dashboard/internal/config"
+	"github.com/k999s/dashboard/internal/frontend"
 	"github.com/k999s/dashboard/internal/k8s"
 )
 
@@ -27,7 +28,7 @@ func main() {
 		log.Fatalf("failed to create k8s client: %v", err)
 	}
 
-	router := api.NewRouter(k8sClient)
+	router := api.NewRouter(k8sClient, frontend.FS)
 	addr := fmt.Sprintf(":%d", *port)
 	url := fmt.Sprintf("http://localhost:%d", *port)
 

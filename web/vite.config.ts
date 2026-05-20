@@ -8,6 +8,10 @@ export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },
+  build: {
+    outDir: '../internal/frontend/dist',
+    emptyOutDir: true,
+  },
   server: {
     port: 5173,
     proxy: {
