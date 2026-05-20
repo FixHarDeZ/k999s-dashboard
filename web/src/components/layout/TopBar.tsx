@@ -1,4 +1,3 @@
-import { ChevronDown, Check } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 
 interface DropdownProps {
@@ -13,38 +12,58 @@ function Dropdown({ value, options, onChange, placeholder }: DropdownProps) {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
     }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
   }, [])
 
-  const current = options.find((o) => o.value === value)
-  const label = current?.label ?? placeholder ?? value
+  const label = options.find((o) => o.value === value)?.label ?? placeholder ?? value
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} style={{ position: 'relative' }}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium text-white border border-white/30 bg-white/10 hover:bg-white/20 transition-colors whitespace-nowrap"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          background: 'rgba(255,255,255,0.15)',
+          border: '1px solid rgba(255,255,255,0.35)',
+          borderRadius: 6, padding: '4px 10px',
+          fontSize: 11, fontWeight: 500,
+          color: '#ffffff', cursor: 'pointer',
+          whiteSpace: 'nowrap',
+        }}
       >
         {label}
-        <ChevronDown size={11} className="opacity-70 flex-shrink-0" />
+        <span style={{ opacity: 0.7, fontSize: 9 }}>▾</span>
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1 z-50 min-w-[160px] rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden">
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, marginTop: 4,
+          background: '#fff', border: '1px solid #e0e7ff',
+          borderRadius: 8, boxShadow: '0 4px 16px rgba(79,70,229,0.12)',
+          minWidth: 180, zIndex: 1000, overflow: 'hidden',
+        }}>
           {options.map((opt) => (
             <button
               key={opt.value}
               onClick={() => { onChange(opt.value); setOpen(false) }}
-              className="w-full flex items-center justify-between px-3 py-2 text-[12px] text-gray-800 hover:bg-indigo-50 hover:text-indigo-700 transition-colors text-left"
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '8px 12px', fontSize: 12, textAlign: 'left',
+                background: opt.value === value ? '#eef2ff' : '#fff',
+                color: opt.value === value ? '#4338ca' : '#374151',
+                border: 'none', cursor: 'pointer',
+                borderBottom: '1px solid #f3f4f6',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#eef2ff')}
+              onMouseLeave={e => (e.currentTarget.style.background = opt.value === value ? '#eef2ff' : '#fff')}
             >
-              <span className="truncate">{opt.label}</span>
-              {opt.value === value && <Check size={12} className="text-indigo-600 flex-shrink-0 ml-2" />}
+              <span>{opt.label}</span>
+              {opt.value === value && <span style={{ color: '#4f46e5', fontSize: 11 }}>✓</span>}
             </button>
           ))}
         </div>
@@ -63,29 +82,31 @@ interface TopBarProps {
 }
 
 export function TopBar({ context, namespace, namespaces, contexts, onNamespaceChange, onContextChange }: TopBarProps) {
-  const contextOptions = contexts.map((c) => ({ label: c, value: c }))
-  const namespaceOptions = [
-    { label: 'All Namespaces', value: '' },
-    ...namespaces.map((ns) => ({ label: ns, value: ns })),
-  ]
-
   return (
-    <header className="h-11 flex items-center justify-between px-4 flex-shrink-0" style={{ backgroundColor: '#4f46e5' }}>
-      <div className="flex items-center gap-3">
-        <span className="font-bold text-sm text-white tracking-tight select-none">k999s</span>
+    <header style={{
+      backgroundColor: '#4f46e5',
+      height: 44, display: 'flex', alignItems: 'center',
+      justifyContent: 'space-between', padding: '0 16px',
+      flexShrink: 0,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span style={{ fontWeight: 700, fontSize: 14, color: '#ffffff', letterSpacing: '-0.02em' }}>
+          k999s
+        </span>
 
-        {contextOptions.length > 0 && (
-          <Dropdown
-            value={context}
-            options={contextOptions}
-            onChange={onContextChange}
-            placeholder="No context"
-          />
-        )}
+        <Dropdown
+          value={context}
+          options={contexts.map((c) => ({ label: c, value: c }))}
+          onChange={onContextChange}
+          placeholder="No context"
+        />
 
         <Dropdown
           value={namespace}
-          options={namespaceOptions}
+          options={[
+            { label: 'All Namespaces', value: '' },
+            ...namespaces.map((ns) => ({ label: ns, value: ns })),
+          ]}
           onChange={onNamespaceChange}
           placeholder="All Namespaces"
         />
