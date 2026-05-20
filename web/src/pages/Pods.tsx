@@ -13,6 +13,7 @@ import { RefreshCw, Trash2, Terminal, FileText } from 'lucide-react'
 import { fetchPods, deletePod, restartPod, fetchPodContainers } from '@/lib/api'
 import { LogViewer } from '@/components/LogViewer'
 import { ExecTerminal } from '@/components/ExecTerminal'
+import { DiagnosticPanel } from '@/components/DiagnosticPanel'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import type { PodSummary } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -38,6 +39,7 @@ export function Pods() {
   const [globalFilter, setGlobalFilter] = useState('')
   const [logTarget, setLogTarget] = useState<{ pod: PodSummary; containers: string[] } | null>(null)
   const [execTarget, setExecTarget] = useState<{ pod: PodSummary; container: string } | null>(null)
+  const [diagTarget, setDiagTarget] = useState<PodSummary | null>(null)
 
   const handleOpenExec = async (pod: PodSummary) => {
     const containers = await fetchPodContainers(pod.namespace, pod.name).catch(() => [])
@@ -89,6 +91,13 @@ export function Pods() {
         <div className="flex gap-1">
           <button onClick={() => handleOpenLogs(row.original)} className="p-1 text-primary-600 hover:bg-primary-50 rounded text-xs flex items-center gap-1"><FileText size={11} />Logs</button>
           <button onClick={() => handleOpenExec(row.original)} className="p-1 text-primary-600 hover:bg-primary-50 rounded text-xs flex items-center gap-1"><Terminal size={11} />Exec</button>
+          <button
+            onClick={() => setDiagTarget(row.original)}
+            className="p-1 text-yellow-600 hover:bg-yellow-50 rounded text-xs flex items-center gap-1"
+            title="AI Diagnose"
+          >
+            🔍 AI
+          </button>
           <button onClick={() => handleRestart(row.original)} className="p-1 text-primary-600 hover:bg-primary-50 rounded text-xs flex items-center gap-1"><RefreshCw size={11} />Restart</button>
           <button onClick={() => handleDelete(row.original)} className="p-1 text-red-500 hover:bg-red-50 rounded text-xs flex items-center gap-1"><Trash2 size={11} />Delete</button>
         </div>
@@ -167,6 +176,13 @@ export function Pods() {
           podName={execTarget.pod.name}
           container={execTarget.container}
           onClose={() => setExecTarget(null)}
+        />
+      )}
+      {diagTarget && (
+        <DiagnosticPanel
+          namespace={diagTarget.namespace}
+          podName={diagTarget.name}
+          onClose={() => setDiagTarget(null)}
         />
       )}
     </div>

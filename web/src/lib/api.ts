@@ -1,4 +1,4 @@
-import type { PodSummary, DeploymentSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary, TopologyGraph, APIResourceInfo } from './types'
+import type { PodSummary, DeploymentSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary, TopologyGraph, APIResourceInfo, CRDPresence } from './types'
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path)
@@ -135,4 +135,14 @@ export async function fetchResourceGet(
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const json = await res.json()
   return JSON.stringify(json, null, 2)
+}
+
+/** Returns a WebSocket URL for AI diagnostic streaming */
+export function diagnosticWsUrl(namespace: string, name: string): string {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${protocol}//${window.location.host}/ws/pods/${namespace}/${name}/diagnose`
+}
+
+export async function fetchDetectedCRDs(): Promise<CRDPresence> {
+  return get<CRDPresence>('/api/v1/detected-crds')
 }

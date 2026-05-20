@@ -117,3 +117,9 @@ export interface APIResourceInfo {
   version: string
   namespaced: boolean
 }
+
+export interface CRDPresence {
+  istio: boolean
+  gatewayApi: boolean
+  canary: boolean
+}
