@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { Overview } from '@/pages/Overview'
 import { Pods } from '@/pages/Pods'
 import { Deployments } from '@/pages/Deployments'
 import { Services } from '@/pages/Services'
@@ -20,7 +21,7 @@ export default function App() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
-        <Route path="/" element={<Placeholder title="Cluster Overview" />} />
+        <Route path="/" element={<Overview />} />
         <Route path="/topology" element={<Topology />} />
         <Route path="/events" element={<Events />} />
         <Route path="/top" element={<Top />} />
