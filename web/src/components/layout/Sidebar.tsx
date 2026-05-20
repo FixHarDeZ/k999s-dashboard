@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Box, Rocket, Globe, Settings, Server, FolderOpen, Telescope, LayoutDashboard, Cpu } from 'lucide-react'
+import { Box, Rocket, Globe, Settings, Server, FolderOpen, Telescope, LayoutDashboard, Cpu, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface NavItem {
@@ -38,6 +38,7 @@ const navGroups: NavGroup[] = [
     title: 'Config & Storage',
     items: [
       { label: 'ConfigMaps', to: '/configmaps', icon: <Settings size={14} /> },
+      { label: 'Secrets', to: '/secrets', icon: <Lock size={14} /> },
     ],
   },
   {
