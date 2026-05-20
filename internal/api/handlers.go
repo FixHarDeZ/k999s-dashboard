@@ -286,3 +286,60 @@ func (r *Router) handlePodExec(c *gin.Context) {
 	}
 	stdoutW.Close()
 }
+
+func (r *Router) handleGetTopology(c *gin.Context) {
+	namespace := c.Query("namespace")
+	if namespace == "" {
+		namespace = "default"
+	}
+	graph, err := r.k8s.GetTopology(c.Request.Context(), namespace)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, graph)
+}
+
+func (r *Router) handleAPIResources(c *gin.Context) {
+	resources, err := r.k8s.ListAPIResources()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": resources})
+}
+
+func (r *Router) handleResourceList(c *gin.Context) {
+	group := c.Query("group")
+	version := c.Query("version")
+	resource := c.Query("resource")
+	namespace := c.Query("namespace")
+	if version == "" || resource == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "version and resource are required"})
+		return
+	}
+	items, err := r.k8s.ListResourceRaw(c.Request.Context(), group, version, resource, namespace)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": items})
+}
+
+func (r *Router) handleResourceGet(c *gin.Context) {
+	group := c.Query("group")
+	version := c.Query("version")
+	resource := c.Query("resource")
+	namespace := c.Query("namespace")
+	name := c.Query("name")
+	if version == "" || resource == "" || name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "version, resource, and name are required"})
+		return
+	}
+	raw, err := r.k8s.GetResourceRaw(c.Request.Context(), group, version, resource, namespace, name)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Data(http.StatusOK, "application/json", raw)
+}

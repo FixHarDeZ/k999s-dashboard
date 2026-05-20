@@ -88,3 +88,27 @@ func TestGetPodContainers_ReturnsOK(t *testing.T) {
 	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
 }
+
+func TestGetTopology_ReturnsGraph(t *testing.T) {
+	router := newTestRouter()
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/api/v1/topology?namespace=default", nil)
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp struct {
+		Nodes []any `json:"nodes"`
+		Edges []any `json:"edges"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.GreaterOrEqual(t, len(resp.Nodes), 1)
+}
+
+func TestGetAPIResources_ReturnsOK(t *testing.T) {
+	router := newTestRouter()
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/api/v1/api-resources", nil)
+	router.ServeHTTP(w, req)
+	// fake discovery returns empty or some resources — just check 200
+	assert.Equal(t, http.StatusOK, w.Code)
+}

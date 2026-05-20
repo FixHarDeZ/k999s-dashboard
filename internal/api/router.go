@@ -44,6 +44,10 @@ func NewRouter(k8sClient *k8s.Client, webFS embed.FS, hub *ws.Hub) *Router {
 	v1.GET("/pod-metrics", r.handlePodMetrics)
 	v1.GET("/node-metrics", r.handleNodeMetrics)
 	v1.GET("/pods/:namespace/:name/containers", r.handlePodContainers)
+	v1.GET("/topology", r.handleGetTopology)
+	v1.GET("/api-resources", r.handleAPIResources)
+	v1.GET("/resource-list", r.handleResourceList)
+	v1.GET("/resource-get", r.handleResourceGet)
 
 	// Actions
 	v1.DELETE("/pods/:namespace/:name", r.handleDeletePod)
