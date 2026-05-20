@@ -146,3 +146,7 @@ export function diagnosticWsUrl(namespace: string, name: string): string {
 export async function fetchDetectedCRDs(): Promise<CRDPresence> {
   return get<CRDPresence>('/api/v1/detected-crds')
 }
+
+export async function switchContext(contextName: string): Promise<void> {
+  await action('/api/v1/contexts/switch', 'POST', { context: contextName })
+}

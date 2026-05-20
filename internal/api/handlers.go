@@ -347,6 +347,21 @@ func (r *Router) handleResourceGet(c *gin.Context) {
 	c.Data(http.StatusOK, "application/json", raw)
 }
 
+func (r *Router) handleSwitchContext(c *gin.Context) {
+	var body struct {
+		Context string `json:"context" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "context is required"})
+		return
+	}
+	if err := r.k8s.SwitchContext(body.Context); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"context": body.Context})
+}
+
 func (r *Router) handleDetectedCRDs(c *gin.Context) {
 	presence := r.k8s.DetectCRDs()
 	c.JSON(http.StatusOK, presence)

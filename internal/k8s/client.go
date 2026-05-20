@@ -55,6 +55,19 @@ func NewClientFromKubernetesClient(kube kubernetes.Interface, context string) *C
 	return &Client{kube: kube, currentContext: context}
 }
 
+// SwitchContext reinitialises the client for a different kubeconfig context.
+// This is safe for single-user local use (no mutex needed).
+func (c *Client) SwitchContext(contextName string) error {
+	next, err := NewClient(c.kubeconfigPath, contextName)
+	if err != nil {
+		return fmt.Errorf("switch context %q: %w", contextName, err)
+	}
+	c.kube = next.kube
+	c.restConfig = next.restConfig
+	c.currentContext = next.currentContext
+	return nil
+}
+
 // ListPods returns pod summaries for the given namespace. Pass "" for all namespaces.
 func (c *Client) ListPods(ctx context.Context, namespace string) ([]PodSummary, error) {
 	list, err := c.kube.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})

@@ -2,7 +2,7 @@ import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
 import { useState, useEffect } from 'react'
-import { fetchNamespaces, fetchContexts, fetchDetectedCRDs } from '@/lib/api'
+import { fetchNamespaces, fetchContexts, fetchDetectedCRDs, switchContext } from '@/lib/api'
 import type { ContextInfo, CRDPresence } from '@/lib/types'
 
 export function AppLayout() {
@@ -11,6 +11,12 @@ export function AppLayout() {
   const [contexts, setContexts] = useState<ContextInfo[]>([])
   const [currentContext, setCurrentContext] = useState('')
   const [detectedCRDs, setDetectedCRDs] = useState<CRDPresence>({ istio: false, gatewayApi: false, canary: false })
+
+  const reloadClusterData = () => {
+    setNamespace('')
+    fetchNamespaces().then(setNamespaces).catch(console.error)
+    fetchDetectedCRDs().then(setDetectedCRDs).catch(console.error)
+  }
 
   useEffect(() => {
     fetchNamespaces().then(setNamespaces).catch(console.error)
@@ -22,6 +28,17 @@ export function AppLayout() {
     fetchDetectedCRDs().then(setDetectedCRDs).catch(console.error)
   }, [])
 
+  const handleContextChange = async (ctx: string) => {
+    if (ctx === currentContext) return
+    try {
+      await switchContext(ctx)
+      setCurrentContext(ctx)
+      reloadClusterData()
+    } catch (e) {
+      console.error('Failed to switch context:', e)
+    }
+  }
+
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-white">
       <TopBar
@@ -30,7 +47,7 @@ export function AppLayout() {
         namespaces={namespaces}
         contexts={contexts.map((c) => c.name)}
         onNamespaceChange={setNamespace}
-        onContextChange={setCurrentContext}
+        onContextChange={handleContextChange}
       />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar detectedCRDs={detectedCRDs} />
