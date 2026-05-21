@@ -1,5 +1,15 @@
 # Daily Log
 
+## 2026-05-21 — Session End: v0.2.0 Released
+
+### สรุปงาน
+- **AI Diagnose bug fix**: `opencompat.go` ไม่ check `resp.StatusCode` → ถ้า OpenRouter ตอบ non-200 (rate limit, invalid model) channel ปิดเงียบ → generic "empty response" — Fix: เพิ่ม status check + return real API error
+- **Settings ย้าย**: จาก bottom-left sidebar ไปเป็น button ขวาบนใน TopBar (icon + active highlight)
+- **TopBar label**: เปลี่ยน "k999s" text (ซ้ำกับ sidebar) เป็น `Network` icon จาก lucide-react
+- **v0.2.0 released**: tag + 5 platform binaries + GitHub Release published
+
+---
+
 ## 2026-05-21 — Task 7: Wire /istio, /gateway, /canary routes (FINAL TASK)
 
 ### สรุปงาน

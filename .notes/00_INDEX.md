@@ -7,7 +7,7 @@
 k999s เป็น Kubernetes dashboard แบบ local web app — single Go binary ที่ embed React frontend อ่าน `~/.kube/config` อัตโนมัติ เปิด browser เองที่ `:8080`
 
 **GitHub:** https://github.com/FixHarDeZ/k999s-dashboard  
-**Version:** v0.1.0 (file: `VERSION`)
+**Version:** v0.2.0 (file: `VERSION`)
 
 ---
 
@@ -116,7 +116,7 @@ ai:
 
 ---
 
-## Known Gaps / Limitations (v0.1.0)
+## Known Gaps / Limitations (v0.2.0)
 
 | Feature | Status |
 |---|---|
@@ -148,6 +148,15 @@ ai:
 | **GitHub Release v0.1.0** | 5 platforms binary + checksums.txt |
 | **`/release` skill** | `~/.claude/skills/release/SKILL.md` |
 | **Istio page sorting** | Added column sorting (↑/↓) on VirtualService and DestinationRule tables |
+
+## Changes in v0.2.0 Session (2026-05-21)
+
+| เรื่อง | รายละเอียด |
+|---|---|
+| **AI Diagnose fix** | `opencompat.go` เพิ่ม HTTP status check — surface real API error (rate limit, invalid model) แทน generic message |
+| **Settings ขวาบน** | ย้ายจาก bottom sidebar ไปเป็น button ใน TopBar มุมขวา |
+| **TopBar cluster icon** | แทน "k999s" text ด้วย `Network` icon (lucide-react) |
+| **GitHub Release v0.2.0** | 5 platform binaries + checksums.txt |
 | **Istio page** | VS + DR tabs, columns: Name/NS/Hosts/Gateways/HTTP Routes/Age, sorting, YamlSidePanel |
 | **Gateway API page** | Gateway + HTTPRoute tabs, version discovery, sorting, YamlSidePanel |
 | **Canary page** | Flagger Canary + Argo Rollouts tabs (shown per detected CRD), phase badge colors, weight progress bar |
