@@ -102,9 +102,10 @@ export async function fetchPodContainers(namespace: string, podName: string): Pr
 }
 
 /** Returns a WebSocket URL for pod log streaming */
-export function podLogsWsUrl(namespace: string, name: string, container: string, follow: boolean, previous: boolean): string {
+export function podLogsWsUrl(namespace: string, name: string, container: string, follow: boolean, previous: boolean, tail?: number): string {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   const params = new URLSearchParams({ container, follow: String(follow), previous: String(previous) })
+  if (tail && tail > 0) params.set('tail', String(tail))
   return `${protocol}//${window.location.host}/ws/pods/${namespace}/${name}/logs?${params}`
 }
 

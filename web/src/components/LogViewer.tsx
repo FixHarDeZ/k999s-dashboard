@@ -12,6 +12,7 @@ interface LogViewerProps {
 export function LogViewer({ namespace, podName, containers, onClose }: LogViewerProps) {
   const [container, setContainer] = useState(containers[0] ?? '')
   const [previous, setPrevious] = useState(false)
+  const [tail, setTail] = useState<number>(0)
   const [lines, setLines] = useState<string[]>([])
   const [connected, setConnected] = useState(false)
   const wsRef = useRef<WebSocket | null>(null)
@@ -23,7 +24,7 @@ export function LogViewer({ namespace, podName, containers, onClose }: LogViewer
     setLines([])
     setConnected(false)
 
-    const ws = new WebSocket(podLogsWsUrl(namespace, podName, container, true, previous))
+    const ws = new WebSocket(podLogsWsUrl(namespace, podName, container, true, previous, tail || undefined))
     wsRef.current = ws
 
     ws.onopen = () => setConnected(true)
@@ -38,7 +39,7 @@ export function LogViewer({ namespace, podName, containers, onClose }: LogViewer
         bottomRef.current?.scrollIntoView({ behavior: 'instant' })
       }
     }
-  }, [namespace, podName, container, previous])
+  }, [namespace, podName, container, previous, tail])
 
   useEffect(() => {
     connect()
@@ -88,6 +89,18 @@ export function LogViewer({ namespace, podName, containers, onClose }: LogViewer
             <input type="checkbox" checked={previous} onChange={(e) => setPrevious(e.target.checked)} />
             Previous
           </label>
+          <select
+            value={tail}
+            onChange={(e) => setTail(Number(e.target.value))}
+            style={{ background: 'rgba(255,255,255,0.1)', color: '#c7d2fe', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 4, padding: '2px 6px', fontSize: 11, cursor: 'pointer' }}
+          >
+            <option value={0} style={{ color: '#000' }}>All lines</option>
+            <option value={100} style={{ color: '#000' }}>Last 100</option>
+            <option value={200} style={{ color: '#000' }}>Last 200</option>
+            <option value={300} style={{ color: '#000' }}>Last 300</option>
+            <option value={400} style={{ color: '#000' }}>Last 400</option>
+            <option value={500} style={{ color: '#000' }}>Last 500</option>
+          </select>
           <button onClick={handleDownload} title="Download logs"
             style={{ background: 'none', border: 'none', color: '#a5b4fc', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
             <Download size={14} />

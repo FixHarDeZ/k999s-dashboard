@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -270,6 +271,13 @@ func (r *Router) handlePodLogs(c *gin.Context) {
 	follow := c.Query("follow") == "true"
 	previous := c.Query("previous") == "true"
 
+	var tailLines int64
+	if tailStr := c.Query("tail"); tailStr != "" {
+		if n, err := strconv.ParseInt(tailStr, 10, 64); err == nil && n > 0 {
+			tailLines = n
+		}
+	}
+
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		return
@@ -288,7 +296,7 @@ func (r *Router) handlePodLogs(c *gin.Context) {
 		}
 	}()
 
-	stream, err := r.k8s.StreamLogs(ctx, ns, name, container, follow, previous)
+	stream, err := r.k8s.StreamLogs(ctx, ns, name, container, follow, previous, tailLines)
 	if err != nil {
 		_ = conn.WriteMessage(websocket.TextMessage, []byte("error: "+err.Error()))
 		return

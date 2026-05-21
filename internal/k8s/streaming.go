@@ -11,11 +11,15 @@ import (
 )
 
 // StreamLogs returns a ReadCloser that streams pod logs. Caller must close it.
-func (c *Client) StreamLogs(ctx context.Context, namespace, name, container string, follow, previous bool) (io.ReadCloser, error) {
+// tailLines=0 means stream all logs; tailLines>0 returns last N lines before streaming new ones.
+func (c *Client) StreamLogs(ctx context.Context, namespace, name, container string, follow, previous bool, tailLines int64) (io.ReadCloser, error) {
 	opts := &corev1.PodLogOptions{
 		Container: container,
 		Follow:    follow,
 		Previous:  previous,
+	}
+	if tailLines > 0 {
+		opts.TailLines = &tailLines
 	}
 	req := c.kube.CoreV1().Pods(namespace).GetLogs(name, opts)
 	return req.Stream(ctx)

@@ -175,7 +175,7 @@ const (
 )
 
 func collectLogs(ctx context.Context, c *Client, namespace, pod, container string, previous bool, maxLines int) string {
-	stream, err := c.StreamLogs(ctx, namespace, pod, container, false, previous)
+	stream, err := c.StreamLogs(ctx, namespace, pod, container, false, previous, 0)
 	if err != nil || stream == nil {
 		return ""
 	}
