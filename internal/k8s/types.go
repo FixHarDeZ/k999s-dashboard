@@ -108,3 +108,12 @@ type StatefulSetSummary struct {
 	Ready     string `json:"ready"`
 	Age       string `json:"age"`
 }
+
+type IngressSummary struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Hosts     string `json:"hosts"`
+	Address   string `json:"address"`
+	Ports     string `json:"ports"`
+	Age       string `json:"age"`
+}

@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
@@ -81,6 +82,26 @@ func TestListNodes_ReturnsList(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, nodes, 1)
 	assert.Equal(t, "node-1", nodes[0].Name)
+}
+
+func TestListIngresses_ReturnsInNamespace(t *testing.T) {
+	fakeClient := fake.NewSimpleClientset(
+		&networkingv1.Ingress{
+			ObjectMeta: metav1.ObjectMeta{Name: "ing-1", Namespace: "default"},
+			Spec: networkingv1.IngressSpec{
+				Rules: []networkingv1.IngressRule{{Host: "example.com"}},
+			},
+		},
+		&networkingv1.Ingress{
+			ObjectMeta: metav1.ObjectMeta{Name: "ing-2", Namespace: "other"},
+		},
+	)
+	client := k8s.NewClientFromKubernetesClient(fakeClient, "")
+	items, err := client.ListIngresses(context.Background(), "default")
+	require.NoError(t, err)
+	assert.Len(t, items, 1)
+	assert.Equal(t, "ing-1", items[0].Name)
+	assert.Equal(t, "example.com", items[0].Hosts)
 }
 
 func TestListEvents_ReturnsList(t *testing.T) {

@@ -8,6 +8,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -293,6 +294,48 @@ func (c *Client) ListServices(ctx context.Context, namespace string) ([]ServiceS
 		})
 	}
 	return out, nil
+}
+
+// ListIngresses returns ingress summaries for the given namespace. Pass "" for all namespaces.
+func (c *Client) ListIngresses(ctx context.Context, namespace string) ([]IngressSummary, error) {
+	list, err := c.kube.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	summaries := make([]IngressSummary, 0, len(list.Items))
+	for _, ing := range list.Items {
+		summaries = append(summaries, toIngressSummary(ing))
+	}
+	return summaries, nil
+}
+
+func toIngressSummary(ing networkingv1.Ingress) IngressSummary {
+	var hosts []string
+	for _, rule := range ing.Spec.Rules {
+		if rule.Host != "" {
+			hosts = append(hosts, rule.Host)
+		}
+	}
+	var addrs []string
+	for _, lb := range ing.Status.LoadBalancer.Ingress {
+		if lb.IP != "" {
+			addrs = append(addrs, lb.IP)
+		} else if lb.Hostname != "" {
+			addrs = append(addrs, lb.Hostname)
+		}
+	}
+	ports := "80"
+	if len(ing.Spec.TLS) > 0 {
+		ports = "80, 443"
+	}
+	return IngressSummary{
+		Name:      ing.Name,
+		Namespace: ing.Namespace,
+		Hosts:     strings.Join(hosts, ", "),
+		Address:   strings.Join(addrs, ", "),
+		Ports:     ports,
+		Age:       formatAge(ing.CreationTimestamp.Time),
+	}
 }
 
 func (c *Client) ListNodes(ctx context.Context) ([]NodeSummary, error) {

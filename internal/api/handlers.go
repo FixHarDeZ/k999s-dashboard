@@ -117,6 +117,16 @@ func (r *Router) handleListStatefulSets(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"items": items})
 }
 
+func (r *Router) handleListIngresses(c *gin.Context) {
+	namespace := c.Query("namespace")
+	items, err := r.k8s.ListIngresses(c.Request.Context(), namespace)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": items})
+}
+
 func (r *Router) handleDeletePod(c *gin.Context) {
 	ns, name := c.Param("namespace"), c.Param("name")
 	if err := r.k8s.DeletePod(c.Request.Context(), ns, name); err != nil {
