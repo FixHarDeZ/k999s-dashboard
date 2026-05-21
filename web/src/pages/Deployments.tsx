@@ -29,6 +29,7 @@ export function Deployments() {
   const [scaleValue, setScaleValue] = useState(1)
   const [yamlTarget, setYamlTarget] = useState<DeploymentSummary | null>(null)
   const [confirmAction, setConfirmAction] = useState<{ type: 'delete' | 'restart'; deployment: DeploymentSummary } | null>(null)
+  const [refreshInterval, setRefreshInterval] = useState<number | null>(null)
 
   const load = useCallback(() => {
     fetchDeployments(namespace).then(setItems).catch(console.error)
@@ -37,6 +38,12 @@ export function Deployments() {
   useEffect(() => {
     load()
   }, [load])
+
+  useEffect(() => {
+    if (!refreshInterval) return
+    const id = setInterval(load, refreshInterval * 1000)
+    return () => clearInterval(id)
+  }, [load, refreshInterval])
 
   const handleScale = async () => {
     if (!scaleTarget) return
@@ -111,7 +118,18 @@ export function Deployments() {
           <h1 className="text-base font-bold text-primary-900">Deployments</h1>
           <p className="text-[11px] text-primary-500">{items.length} deployments</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <select
+            value={refreshInterval ?? ''}
+            onChange={(e) => setRefreshInterval(e.target.value ? Number(e.target.value) : null)}
+            className="text-xs border border-primary-200 rounded-md px-2 py-1.5 outline-none focus:border-primary-400 text-primary-700"
+          >
+            <option value="">Off</option>
+            <option value="5">5s</option>
+            <option value="10">10s</option>
+            <option value="15">15s</option>
+            <option value="30">30s</option>
+          </select>
           <RefreshButton onRefresh={load} />
           <input
             placeholder="Filter..."

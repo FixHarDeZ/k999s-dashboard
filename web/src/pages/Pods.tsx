@@ -78,6 +78,7 @@ export function Pods() {
   const [expandedPod, setExpandedPod] = useState<string | null>(null)
   const [yamlTarget, setYamlTarget] = useState<PodSummary | null>(null)
   const [confirmAction, setConfirmAction] = useState<{ type: 'delete' | 'restart'; pod: PodSummary } | null>(null)
+  const [refreshInterval, setRefreshInterval] = useState<number | null>(null)
 
   const handleOpenExec = async (pod: PodSummary) => {
     const containers = await fetchPodContainers(pod.namespace, pod.name).catch(() => [])
@@ -102,6 +103,12 @@ export function Pods() {
       setPods(msg.data as PodSummary[])
     }
   })
+
+  useEffect(() => {
+    if (!refreshInterval) return
+    const id = setInterval(load, refreshInterval * 1000)
+    return () => clearInterval(id)
+  }, [load, refreshInterval])
 
   const handleConfirm = async () => {
     if (!confirmAction) return
@@ -189,6 +196,17 @@ export function Pods() {
           <p className="text-[11px] text-primary-500">{pods.length} pods{unhealthyCount > 0 ? ` · ${unhealthyCount} unhealthy` : ''}</p>
         </div>
         <div className="flex gap-2 items-center">
+          <select
+            value={refreshInterval ?? ''}
+            onChange={(e) => setRefreshInterval(e.target.value ? Number(e.target.value) : null)}
+            className="text-xs border border-primary-200 rounded-md px-2 py-1.5 outline-none focus:border-primary-400 text-primary-700"
+          >
+            <option value="">Off</option>
+            <option value="5">5s</option>
+            <option value="10">10s</option>
+            <option value="15">15s</option>
+            <option value="30">30s</option>
+          </select>
           <RefreshButton onRefresh={load} />
           <input
             placeholder="Filter pods..."
