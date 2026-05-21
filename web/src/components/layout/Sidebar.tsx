@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Box, Rocket, Globe, Settings, Server, FolderOpen, Telescope, LayoutDashboard, Cpu, Lock, Activity, BarChart2, GitBranch, Layers, Waypoints, Bird, Network } from 'lucide-react'
+import { Box, Rocket, Globe, Settings, Server, FolderOpen, Telescope, LayoutDashboard, Cpu, Lock, Activity, BarChart2, GitBranch, Layers, Waypoints, Bird, Network, Package } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { CRDPresence } from '@/lib/types'
 
@@ -58,6 +58,7 @@ export function Sidebar({ detectedCRDs }: SidebarProps) {
       title: 'Cluster',
       items: [
         { label: 'Nodes', to: '/nodes', icon: <Cpu size={14} /> },
+        { label: 'Helm', to: '/helm', icon: <Package size={14} /> },
         { label: 'Namespaces', to: '/namespaces', icon: <FolderOpen size={14} /> },
         { label: 'Resource Explorer', to: '/explorer', icon: <Telescope size={14} /> },
       ],

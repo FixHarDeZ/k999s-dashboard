@@ -158,3 +158,13 @@ export interface CRDPresence {
   flaggerCanary: boolean
   argoRollouts: boolean
 }
+
+export interface HelmReleaseSummary {
+  name: string
+  namespace: string
+  revision: string
+  updated: string
+  status: string
+  chart: string
+  appVersion: string
+}

@@ -1,4 +1,4 @@
-import type { PodSummary, DeploymentSummary, StatefulSetSummary, IngressSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary, TopologyGraph, APIResourceInfo, CRDPresence } from './types'
+import type { PodSummary, DeploymentSummary, StatefulSetSummary, IngressSummary, HelmReleaseSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary, TopologyGraph, APIResourceInfo, CRDPresence } from './types'
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path)
@@ -198,3 +198,11 @@ export async function saveSettings(settings: { provider: string; model: string; 
     throw new Error((err as { error: string }).error)
   }
 }
+
+export async function fetchHelmReleases(namespace: string): Promise<HelmReleaseSummary[]> {
+  const data = await get<{ items: HelmReleaseSummary[] }>(`/api/v1/helm/releases?namespace=${namespace}`)
+  return data.items
+}
+
+export const uninstallHelmRelease = (namespace: string, name: string) =>
+  action(`/api/v1/helm/releases/${namespace}/${name}`, 'DELETE')
