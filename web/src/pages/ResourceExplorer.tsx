@@ -38,6 +38,7 @@ export function ResourceExplorer() {
   const [selected, setSelected] = useState<APIResourceInfo | null>(null)
   const [items, setItems] = useState<Record<string, unknown>[]>([])
   const [selectedItem, setSelectedItem] = useState<string | null>(null)
+  const [selectedItemNs, setSelectedItemNs] = useState<string>('')  // actual namespace of selected item
   const [rawJson, setRawJson] = useState<string>('')        // raw JSON from backend
   const [editContent, setEditContent] = useState<string>('') // editable YAML in editor
   const [editMode, setEditMode] = useState(false)
@@ -72,16 +73,19 @@ export function ResourceExplorer() {
     }
   }, [namespace])
 
-  const handleGetYaml = useCallback(async (itemName: string) => {
+  const handleGetYaml = useCallback(async (itemName: string, itemNamespace?: string) => {
     if (!selected) return
     setSelectedItem(itemName)
+    const ns = itemNamespace ?? namespace
+    setSelectedItemNs(ns)  // remember for Apply
     setRawJson('')
     setEditMode(false)
     setApplyError(null)
     setApplySuccess(false)
     setLoadingYaml(true)
+    // Use the item's own namespace (from metadata) when global namespace is empty (All Namespaces)
     try {
-      const jsonStr = await fetchResourceGet(selected.group, selected.version, selected.name, namespace, itemName)
+      const jsonStr = await fetchResourceGet(selected.group, selected.version, selected.name, ns, itemName)
       setRawJson(jsonStr)
     } catch (e) {
       setRawJson(`// Error: ${(e as Error).message}`)
@@ -116,11 +120,11 @@ export function ResourceExplorer() {
     setApplySuccess(false)
     try {
       const parsed = yaml.load(editContent)
-      await applyResource(selected.group, selected.version, selected.name, namespace, selectedItem, parsed)
+      await applyResource(selected.group, selected.version, selected.name, selectedItemNs, selectedItem, parsed)
       setApplySuccess(true)
       setEditMode(false)
-      // Refresh the resource view
-      const jsonStr = await fetchResourceGet(selected.group, selected.version, selected.name, namespace, selectedItem)
+      // Refresh the resource view using the actual item namespace
+      const jsonStr = await fetchResourceGet(selected.group, selected.version, selected.name, selectedItemNs, selectedItem)
       setRawJson(jsonStr)
     } catch (e) {
       setApplyError((e as Error).message)
@@ -217,11 +221,13 @@ export function ResourceExplorer() {
               <div style={{ flex: 1, overflowY: 'auto' }}>
                 {items.map((item) => {
                   const itemName = extractName(item)
+                  const itemMeta = item.metadata as Record<string, unknown> | undefined
+                  const itemNs = (itemMeta?.namespace as string) ?? ''
                   const isActive = selectedItem === itemName
                   return (
                     <button
-                      key={itemName}
-                      onClick={() => handleGetYaml(itemName)}
+                      key={`${itemNs}/${itemName}`}
+                      onClick={() => handleGetYaml(itemName, itemNs)}
                       style={{
                         width: '100%', textAlign: 'left', padding: '7px 12px', fontSize: 11,
                         background: isActive ? '#eef2ff' : 'transparent',
