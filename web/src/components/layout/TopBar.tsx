@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
-import { SlidersHorizontal } from 'lucide-react'
+import { Network, SlidersHorizontal } from 'lucide-react'
 
 interface DropdownProps {
   value: string
@@ -93,9 +93,7 @@ export function TopBar({ context, namespace, namespaces, contexts, onNamespaceCh
       flexShrink: 0,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontWeight: 700, fontSize: 14, color: '#ffffff', letterSpacing: '-0.02em' }}>
-          k999s
-        </span>
+        <Network size={16} color="rgba(255,255,255,0.85)" strokeWidth={1.8} />
 
         <Dropdown
           value={context}
