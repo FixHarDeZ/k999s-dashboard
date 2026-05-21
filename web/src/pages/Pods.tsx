@@ -10,11 +10,12 @@ import {
   useReactTable,
   type SortingState,
 } from '@tanstack/react-table'
-import { RefreshCw, Trash2, Terminal, FileText } from 'lucide-react'
+import { RefreshCw, Trash2, Terminal, FileText, FileCode2 } from 'lucide-react'
 import { fetchPods, deletePod, restartPod, fetchPodContainers } from '@/lib/api'
 import { LogViewer } from '@/components/LogViewer'
 import { ExecTerminal } from '@/components/ExecTerminal'
 import { DiagnosticPanel } from '@/components/DiagnosticPanel'
+import { YamlSidePanel } from '@/components/YamlSidePanel'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import type { PodSummary, ContainerInfo } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -74,6 +75,7 @@ export function Pods() {
   const [execTarget, setExecTarget] = useState<{ pod: PodSummary; container: string } | null>(null)
   const [diagTarget, setDiagTarget] = useState<PodSummary | null>(null)
   const [expandedPod, setExpandedPod] = useState<string | null>(null)
+  const [yamlTarget, setYamlTarget] = useState<PodSummary | null>(null)
 
   const handleOpenExec = async (pod: PodSummary) => {
     const containers = await fetchPodContainers(pod.namespace, pod.name).catch(() => [])
@@ -151,6 +153,13 @@ export function Pods() {
             🔍 AI
           </button>
           <button onClick={() => handleRestart(row.original)} className="p-1 text-primary-600 hover:bg-primary-50 rounded text-xs flex items-center gap-1"><RefreshCw size={11} />Restart</button>
+          <button
+            onClick={() => setYamlTarget(row.original)}
+            className="p-1 text-primary-600 hover:bg-primary-50 rounded"
+            title="View/Edit YAML"
+          >
+            <FileCode2 size={11} />
+          </button>
           <button onClick={() => handleDelete(row.original)} className="p-1 text-red-500 hover:bg-red-50 rounded text-xs flex items-center gap-1"><Trash2 size={11} />Delete</button>
         </div>
       ),
@@ -259,6 +268,17 @@ export function Pods() {
           namespace={diagTarget.namespace}
           podName={diagTarget.name}
           onClose={() => setDiagTarget(null)}
+        />
+      )}
+      {yamlTarget && (
+        <YamlSidePanel
+          group=""
+          version="v1"
+          resource="pods"
+          namespace={yamlTarget.namespace}
+          name={yamlTarget.name}
+          onClose={() => setYamlTarget(null)}
+          editable
         />
       )}
     </div>

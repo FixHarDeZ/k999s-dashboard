@@ -1,21 +1,37 @@
 import { RefreshButton } from '@/components/RefreshButton'
 import { useEffect, useState, useCallback } from 'react'
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
+import { FileCode2 } from 'lucide-react'
 import { fetchNamespaceSummaries } from '@/lib/api'
+import { YamlSidePanel } from '@/components/YamlSidePanel'
 import type { NamespaceSummary } from '@/lib/types'
 
 const col = createColumnHelper<NamespaceSummary>()
-const columns = [
-  col.accessor('name', { header: 'Name', cell: (i) => <span className="font-medium text-xs text-primary-900">{i.getValue()}</span> }),
-  col.accessor('status', { header: 'Status', cell: (i) => <span className="text-xs text-green-600">● {i.getValue()}</span> }),
-  col.accessor('age', { header: 'Age', cell: (i) => <span className="text-xs text-gray-500">{i.getValue()}</span> }),
-]
 
 export function Namespaces() {
   const [items, setItems] = useState<NamespaceSummary[]>([])
+  const [yamlTarget, setYamlTarget] = useState<NamespaceSummary | null>(null)
+
   const load = useCallback(() => { fetchNamespaceSummaries().then(setItems).catch(console.error) }, [])
   useEffect(() => { load() }, [load])
+
+  const columns = [
+    col.accessor('name', { header: 'Name', cell: (i) => <span className="font-medium text-xs text-primary-900">{i.getValue()}</span> }),
+    col.accessor('status', { header: 'Status', cell: (i) => <span className="text-xs text-green-600">● {i.getValue()}</span> }),
+    col.accessor('age', { header: 'Age', cell: (i) => <span className="text-xs text-gray-500">{i.getValue()}</span> }),
+    col.display({
+      id: 'actions',
+      header: '',
+      cell: ({ row }) => (
+        <button onClick={() => setYamlTarget(row.original)} className="p-1 text-primary-600 hover:bg-primary-50 rounded" title="View/Edit YAML">
+          <FileCode2 size={13} />
+        </button>
+      ),
+    }),
+  ]
+
   const table = useReactTable({ data: items, columns, getCoreRowModel: getCoreRowModel() })
+
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
@@ -28,6 +44,17 @@ export function Namespaces() {
           <tbody>{table.getRowModel().rows.map(row => <tr key={row.id} className="border-t border-primary-50 hover:bg-primary-50/50">{row.getVisibleCells().map(cell => <td key={cell.id} className="px-3 py-2">{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>)}</tr>)}</tbody>
         </table>
       </div>
+      {yamlTarget && (
+        <YamlSidePanel
+          group=""
+          version="v1"
+          resource="namespaces"
+          namespace=""
+          name={yamlTarget.name}
+          onClose={() => setYamlTarget(null)}
+          editable
+        />
+      )}
     </div>
   )
 }

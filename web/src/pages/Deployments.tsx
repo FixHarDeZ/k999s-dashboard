@@ -10,7 +10,9 @@ import {
   useReactTable,
   type SortingState,
 } from '@tanstack/react-table'
+import { FileCode2 } from 'lucide-react'
 import { fetchDeployments, scaleDeployment, rolloutRestartDeployment, deleteDeployment } from '@/lib/api'
+import { YamlSidePanel } from '@/components/YamlSidePanel'
 import type { DeploymentSummary } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -24,6 +26,7 @@ export function Deployments() {
   const [globalFilter, setGlobalFilter] = useState('')
   const [scaleTarget, setScaleTarget] = useState<DeploymentSummary | null>(null)
   const [scaleValue, setScaleValue] = useState(1)
+  const [yamlTarget, setYamlTarget] = useState<DeploymentSummary | null>(null)
 
   const load = useCallback(() => {
     fetchDeployments(namespace).then(setItems).catch(console.error)
@@ -73,6 +76,13 @@ export function Deployments() {
           <button
             onClick={() => handleRolloutRestart(row.original)}
             className="p-1 text-primary-600 hover:bg-primary-50 rounded text-xs">↻ Restart</button>
+          <button
+            onClick={() => setYamlTarget(row.original)}
+            className="p-1 text-primary-600 hover:bg-primary-50 rounded text-xs"
+            title="View/Edit YAML"
+          >
+            <FileCode2 size={11} />
+          </button>
           <button
             onClick={() => handleDelete(row.original)}
             className="p-1 text-red-500 hover:bg-red-50 rounded text-xs">🗑 Delete</button>
@@ -159,6 +169,17 @@ export function Deployments() {
           </tbody>
         </table>
       </div>
+      {yamlTarget && (
+        <YamlSidePanel
+          group="apps"
+          version="v1"
+          resource="deployments"
+          namespace={yamlTarget.namespace}
+          name={yamlTarget.name}
+          onClose={() => setYamlTarget(null)}
+          editable
+        />
+      )}
     </div>
   )
 }
