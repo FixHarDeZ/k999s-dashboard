@@ -56,6 +56,15 @@ export const rolloutRestartDeployment = (ns: string, name: string) =>
 export const deleteDeployment = (ns: string, name: string) =>
   action(`/api/v1/deployments/${ns}/${name}`, 'DELETE')
 
+export const cordonNode = (name: string) =>
+  action(`/api/v1/nodes/${name}/cordon`, 'POST')
+
+export const uncordonNode = (name: string) =>
+  action(`/api/v1/nodes/${name}/uncordon`, 'POST')
+
+export const drainNode = (name: string) =>
+  action(`/api/v1/nodes/${name}/drain`, 'POST')
+
 export async function fetchServices(namespace: string): Promise<ServiceSummary[]> {
   const data = await get<{ items: ServiceSummary[] }>(`/api/v1/services?namespace=${namespace}`)
   return data.items

@@ -62,6 +62,7 @@ export interface NodeSummary {
   roles: string
   age: string
   version: string
+  schedulable: boolean
 }
 
 export interface NamespaceSummary {
