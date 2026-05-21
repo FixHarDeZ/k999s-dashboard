@@ -101,7 +101,7 @@ for target in "${TARGETS[@]}"; do
 
   # Create archive
   if [[ "$GOOS" == "windows" ]]; then
-    (cd "$STAGING" && zip -q "$DIST/${ARCHIVE_NAME}.zip" .)
+    (cd "$STAGING" && zip -qr "$DIST/${ARCHIVE_NAME}.zip" .)
     ARCHIVE_FILE="${ARCHIVE_NAME}.zip"
   else
     tar -czf "$DIST/${ARCHIVE_NAME}.tar.gz" -C "$STAGING" .
