@@ -1,5 +1,34 @@
 # Daily Log
 
+## 2026-05-21 — Session End: Batch C (Helm Menu)
+
+### สรุปงาน
+
+**Helm package** (`internal/helm/client.go`)
+- `Client` struct wraps `helm` CLI via `os/exec`
+- `ListReleases(namespace)` — `helm list -o json [-n <ns> | --all-namespaces]` + `--kubeconfig` + `--kube-context`
+- `UninstallRelease(namespace, name)` — `helm uninstall <name> -n <namespace>`
+- `ReleaseSummary` type: name/namespace/revision/updated/status/chart/appVersion
+
+**Router wiring**
+- `Router` struct เพิ่ม `helm *helmclient.Client`
+- `NewRouter` สร้าง `helmclient.NewClient(cfg.KubeconfigPath, cfg.CurrentContext)`
+- Routes: `GET /api/v1/helm/releases`, `DELETE /api/v1/helm/releases/:namespace/:name`
+
+**Frontend**
+- `HelmReleaseSummary` TS type + `fetchHelmReleases` + `uninstallHelmRelease`
+- `Helm.tsx` page: Name/NS/Chart/AppVersion/Status(badge)/Rev/Updated + Delete button + ConfirmModal
+- `/helm` route, Cluster sidebar (Package icon, between Nodes and Namespaces)
+
+### Commits (3 commits)
+```
+e8cd31c feat(helm): add helm.Client wrapping helm CLI (ListReleases, UninstallRelease)
+4ddc432 feat(helm): wire helm client into Router with list and uninstall endpoints
+030a3fe feat(helm): add Helm releases page with list and uninstall
+```
+
+---
+
 ## 2026-05-21 — Session End: Batch B (Ingress + Node actions)
 
 ### สรุปงาน

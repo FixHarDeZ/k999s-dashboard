@@ -131,8 +131,18 @@ ai:
 | Rollback deployment | Not implemented |
 | Cordon/Drain nodes | ✅ Implemented (2026-05-21) — Cordon/Uncordon/Drain buttons + ConfirmModal |
 | Ingress page | ✅ Implemented (2026-05-21) — Name/NS/Hosts/Address/Ports/Age table |
-| Helm menu | Not implemented (planned Batch C) |
+| Helm menu | ✅ Implemented (2026-05-21) — list releases + delete via ConfirmModal |
 | Namespace drill-down | Not implemented (planned Batch D) |
+
+## Batch C — Helm Menu (2026-05-21, pushed to main)
+
+| เรื่อง | รายละเอียด |
+|---|---|
+| **internal/helm package** | `Client` wraps `helm` CLI — `ListReleases` + `UninstallRelease` + kubeconfig/context flags |
+| **API routes** | `GET /api/v1/helm/releases?namespace=` + `DELETE /api/v1/helm/releases/:ns/:name` |
+| **Helm.tsx page** | Table: Name/NS/Chart/AppVer/Status(badge)/Rev/Updated + Delete + ConfirmModal |
+
+---
 
 ## Batch B (2026-05-21, pushed to main)
 
