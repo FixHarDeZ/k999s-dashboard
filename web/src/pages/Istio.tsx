@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import {
   createColumnHelper, flexRender, getCoreRowModel,
-  getFilteredRowModel, useReactTable,
+  getFilteredRowModel, getSortedRowModel, useReactTable,
+  type SortingState,
 } from '@tanstack/react-table'
 import { fetchAPIResources, fetchResourceList } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -63,6 +64,7 @@ export function Istio() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [globalFilter, setGlobalFilter] = useState('')
+  const [sorting, setSorting] = useState<SortingState>([])
   const [selected, setSelected] = useState<Row | null>(null)
   const [versions, setVersions] = useState({ vs: 'v1beta1', dr: 'v1beta1' })
 
@@ -92,9 +94,11 @@ export function Istio() {
   const table = useReactTable({
     data: items,
     columns: activeTab === 'vs' ? vsColumns : drColumns,
-    state: { globalFilter },
+    state: { sorting, globalFilter },
+    onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
   })
 
@@ -138,8 +142,11 @@ export function Istio() {
             {table.getHeaderGroups().map(hg => (
               <tr key={hg.id}>
                 {hg.headers.map(h => (
-                  <th key={h.id} className="text-left px-3 py-2 text-[10px] font-bold text-primary-600 uppercase tracking-wider">
+                  <th key={h.id}
+                    onClick={h.column.getToggleSortingHandler()}
+                    className="text-left px-3 py-2 text-[10px] font-bold text-primary-600 uppercase tracking-wider cursor-pointer select-none">
                     {flexRender(h.column.columnDef.header, h.getContext())}
+                    {h.column.getIsSorted() === 'asc' ? ' ↑' : h.column.getIsSorted() === 'desc' ? ' ↓' : ''}
                   </th>
                 ))}
               </tr>
