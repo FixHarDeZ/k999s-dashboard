@@ -6,7 +6,7 @@ Guidance for Claude Code (claude.ai/code) when operating in this repository.
 
 * **Before Task:** อ่านไฟล์ใน `.notes/` directory นั้นๆ ก่อนเริ่มงานเสมอ
 * **After Task:** สรุปสิ่งที่ทำลงใน `.notes/daily_log.md` ทุกครั้งที่จบงาน
-* **Every Session End:** อัปเดตข้อมูลที่เปลี่ยนไป (DB schema, API, settings, gaps) ใน `.notes/00_INDEX.md` ควบคู่กับ log เสมอ (ไม่มีข้อยกเว้น ไม่ต้องรอ structural change)
+* **Every Session End:** อัปเดตข้อมูลที่เปลี่ยนไป (DB schema, API, settings, gaps) ใน `.notes/00_INDEX.md` ควบคู่กับ log เสมอ และทำ Notion Sync ต่อโดยไม่ต้องถามว่าจะทำไหม (ไม่มีข้อยกเว้น ไม่ต้องรอ structural change)
 * **Notion Sync:** บันทึกขึ้น Notion ด้วยคำสั่ง: `python3 scripts/sync_notion.py "[Title]" "[Content]"`
 
 ## 🛠️ Commands
