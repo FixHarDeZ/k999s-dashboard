@@ -7,8 +7,6 @@ import * as api from '@/lib/api'
 vi.mock('@/lib/api')
 vi.mock('@/hooks/useWebSocket', () => ({ useWebSocket: vi.fn() }))
 
-// Mock window.confirm for delete/restart actions
-window.confirm = vi.fn(() => true)
 
 const mockPods = [
   { name: 'nginx-abc', namespace: 'default', status: 'Running', ready: '1/1', restarts: 0, age: '2h', node: 'node-1', ip: '10.0.0.1', containers: [] },
