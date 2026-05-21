@@ -10,7 +10,7 @@ export function AppLayout() {
   const [namespaces, setNamespaces] = useState<string[]>([])
   const [contexts, setContexts] = useState<ContextInfo[]>([])
   const [currentContext, setCurrentContext] = useState('')
-  const [detectedCRDs, setDetectedCRDs] = useState<CRDPresence>({ istio: false, gatewayApi: false, canary: false })
+  const [detectedCRDs, setDetectedCRDs] = useState<CRDPresence>({ istio: false, gatewayApi: false, flaggerCanary: false, argoRollouts: false })
 
   const reloadClusterData = () => {
     setNamespace('')

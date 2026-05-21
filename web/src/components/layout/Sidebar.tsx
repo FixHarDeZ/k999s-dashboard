@@ -43,7 +43,7 @@ export function Sidebar({ detectedCRDs }: SidebarProps) {
         { label: 'Services', to: '/services', icon: <Globe size={14} /> },
         ...(detectedCRDs?.istio ? [{ label: 'Istio', to: '/istio', icon: <Layers size={14} /> }] : []),
         ...(detectedCRDs?.gatewayApi ? [{ label: 'Gateway API', to: '/gateway', icon: <Waypoints size={14} /> }] : []),
-        ...(detectedCRDs?.canary ? [{ label: 'Canary', to: '/canary', icon: <Bird size={14} /> }] : []),
+        ...(detectedCRDs?.flaggerCanary || detectedCRDs?.argoRollouts ? [{ label: 'Canary', to: '/canary', icon: <Bird size={14} /> }] : []),
       ],
     },
     {

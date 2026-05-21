@@ -138,5 +138,6 @@ export interface AISettings {
 export interface CRDPresence {
   istio: boolean
   gatewayApi: boolean
-  canary: boolean
+  flaggerCanary: boolean
+  argoRollouts: boolean
 }
