@@ -1,4 +1,5 @@
 import { RefreshButton } from '@/components/RefreshButton'
+import { ConfirmModal } from '@/components/ConfirmModal'
 import { useEffect, useState, useCallback } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import {
@@ -76,6 +77,7 @@ export function Pods() {
   const [diagTarget, setDiagTarget] = useState<PodSummary | null>(null)
   const [expandedPod, setExpandedPod] = useState<string | null>(null)
   const [yamlTarget, setYamlTarget] = useState<PodSummary | null>(null)
+  const [confirmAction, setConfirmAction] = useState<{ type: 'delete' | 'restart'; pod: PodSummary } | null>(null)
 
   const handleOpenExec = async (pod: PodSummary) => {
     const containers = await fetchPodContainers(pod.namespace, pod.name).catch(() => [])
@@ -101,15 +103,15 @@ export function Pods() {
     }
   })
 
-  const handleDelete = async (pod: PodSummary) => {
-    if (!confirm(`Delete pod ${pod.name}?`)) return
-    await deletePod(pod.namespace, pod.name).catch(console.error)
-    load()
-  }
-
-  const handleRestart = async (pod: PodSummary) => {
-    if (!confirm(`Restart pod ${pod.name}?`)) return
-    await restartPod(pod.namespace, pod.name).catch(console.error)
+  const handleConfirm = async () => {
+    if (!confirmAction) return
+    const { type, pod } = confirmAction
+    setConfirmAction(null)
+    if (type === 'delete') {
+      await deletePod(pod.namespace, pod.name).catch(console.error)
+    } else {
+      await restartPod(pod.namespace, pod.name).catch(console.error)
+    }
     load()
   }
 
@@ -152,7 +154,7 @@ export function Pods() {
           >
             🔍 AI
           </button>
-          <button onClick={() => handleRestart(row.original)} className="p-1 text-primary-600 hover:bg-primary-50 rounded text-xs flex items-center gap-1"><RefreshCw size={11} />Restart</button>
+          <button onClick={() => setConfirmAction({ type: 'restart', pod: row.original })} className="p-1 text-primary-600 hover:bg-primary-50 rounded text-xs flex items-center gap-1"><RefreshCw size={11} />Restart</button>
           <button
             onClick={() => setYamlTarget(row.original)}
             className="p-1 text-primary-600 hover:bg-primary-50 rounded"
@@ -160,7 +162,7 @@ export function Pods() {
           >
             <FileCode2 size={11} />
           </button>
-          <button onClick={() => handleDelete(row.original)} className="p-1 text-red-500 hover:bg-red-50 rounded text-xs flex items-center gap-1"><Trash2 size={11} />Delete</button>
+          <button onClick={() => setConfirmAction({ type: 'delete', pod: row.original })} className="p-1 text-red-500 hover:bg-red-50 rounded text-xs flex items-center gap-1"><Trash2 size={11} />Delete</button>
         </div>
       ),
     }),
@@ -279,6 +281,15 @@ export function Pods() {
           name={yamlTarget.name}
           onClose={() => setYamlTarget(null)}
           editable
+        />
+      )}
+      {confirmAction && (
+        <ConfirmModal
+          title={confirmAction.type === 'delete' ? `Delete pod "${confirmAction.pod.name}"?` : `Restart pod "${confirmAction.pod.name}"?`}
+          message="This action cannot be undone."
+          confirmLabel={confirmAction.type === 'delete' ? 'Delete' : 'Restart'}
+          onConfirm={handleConfirm}
+          onCancel={() => setConfirmAction(null)}
         />
       )}
     </div>

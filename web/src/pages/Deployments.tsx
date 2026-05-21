@@ -1,4 +1,5 @@
 import { RefreshButton } from '@/components/RefreshButton'
+import { ConfirmModal } from '@/components/ConfirmModal'
 import { useEffect, useState, useCallback } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import {
@@ -27,6 +28,7 @@ export function Deployments() {
   const [scaleTarget, setScaleTarget] = useState<DeploymentSummary | null>(null)
   const [scaleValue, setScaleValue] = useState(1)
   const [yamlTarget, setYamlTarget] = useState<DeploymentSummary | null>(null)
+  const [confirmAction, setConfirmAction] = useState<{ type: 'delete' | 'restart'; deployment: DeploymentSummary } | null>(null)
 
   const load = useCallback(() => {
     fetchDeployments(namespace).then(setItems).catch(console.error)
@@ -43,15 +45,15 @@ export function Deployments() {
     load()
   }
 
-  const handleRolloutRestart = async (d: DeploymentSummary) => {
-    if (!confirm(`Rollout restart ${d.name}?`)) return
-    await rolloutRestartDeployment(d.namespace, d.name).catch(console.error)
-    load()
-  }
-
-  const handleDelete = async (d: DeploymentSummary) => {
-    if (!confirm(`Delete deployment ${d.name}?`)) return
-    await deleteDeployment(d.namespace, d.name).catch(console.error)
+  const handleConfirm = async () => {
+    if (!confirmAction) return
+    const { type, deployment } = confirmAction
+    setConfirmAction(null)
+    if (type === 'delete') {
+      await deleteDeployment(deployment.namespace, deployment.name).catch(console.error)
+    } else {
+      await rolloutRestartDeployment(deployment.namespace, deployment.name).catch(console.error)
+    }
     load()
   }
 
@@ -74,7 +76,7 @@ export function Deployments() {
             }}
             className="p-1 text-primary-600 hover:bg-primary-50 rounded text-xs">⚖️ Scale</button>
           <button
-            onClick={() => handleRolloutRestart(row.original)}
+            onClick={() => setConfirmAction({ type: 'restart', deployment: row.original })}
             className="p-1 text-primary-600 hover:bg-primary-50 rounded text-xs">↻ Restart</button>
           <button
             onClick={() => setYamlTarget(row.original)}
@@ -84,7 +86,7 @@ export function Deployments() {
             <FileCode2 size={11} />
           </button>
           <button
-            onClick={() => handleDelete(row.original)}
+            onClick={() => setConfirmAction({ type: 'delete', deployment: row.original })}
             className="p-1 text-red-500 hover:bg-red-50 rounded text-xs">🗑 Delete</button>
         </div>
       ),
@@ -178,6 +180,15 @@ export function Deployments() {
           name={yamlTarget.name}
           onClose={() => setYamlTarget(null)}
           editable
+        />
+      )}
+      {confirmAction && (
+        <ConfirmModal
+          title={confirmAction.type === 'delete' ? `Delete deployment "${confirmAction.deployment.name}"?` : `Rollout restart "${confirmAction.deployment.name}"?`}
+          message="This action cannot be undone."
+          confirmLabel={confirmAction.type === 'delete' ? 'Delete' : 'Restart'}
+          onConfirm={handleConfirm}
+          onCancel={() => setConfirmAction(null)}
         />
       )}
     </div>
