@@ -1,5 +1,5 @@
 import { RefreshButton } from '@/components/RefreshButton'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { createColumnHelper, flexRender, getCoreRowModel, getSortedRowModel, useReactTable, type SortingState } from '@tanstack/react-table'
 import { fetchPodMetrics, fetchNodeMetrics } from '@/lib/api'
@@ -22,6 +22,21 @@ function UsageBar({ value, max }: { value: number; max: number }) {
 
 const parseCPU = (s: string) => parseInt(s.replace('m', '')) || 0
 
+function parseMem(s: string): number {
+  if (s.endsWith('Gi')) return parseInt(s) * 1024 * 1024
+  if (s.endsWith('Mi')) return parseInt(s) * 1024
+  if (s.endsWith('Ki')) return parseInt(s)
+  return parseInt(s) || 0
+}
+
+function formatMem(ki: number): string {
+  if (ki >= 1024 * 1024) return `${Math.round(ki / 1024 / 1024)}Gi`
+  if (ki >= 1024) return `${Math.round(ki / 1024)}Mi`
+  return `${ki}Ki`
+}
+
+type MinMax = { minCpu: number; maxCpu: number; minMem: number; maxMem: number }
+
 export function Top() {
   const ctx = useOutletContext<{ namespace: string } | null>()
   const namespace = ctx?.namespace ?? ''
@@ -30,11 +45,38 @@ export function Top() {
   const [noMetricsServer, setNoMetricsServer] = useState(false)
   const [podSorting, setPodSorting] = useState<SortingState>([{ id: 'cpu', desc: true }])
 
+  const podHistory = useRef<Map<string, MinMax>>(new Map())
+  const nodeHistory = useRef<Map<string, MinMax>>(new Map())
+
+  useEffect(() => {
+    podHistory.current.clear()
+    nodeHistory.current.clear()
+  }, [namespace])
+
   const load = useCallback(() => {
     Promise.all([
       fetchPodMetrics(namespace).catch(() => { setNoMetricsServer(true); return [] as PodMetricsSummary[] }),
       fetchNodeMetrics().catch(() => [] as NodeMetricsSummary[]),
     ]).then(([pods, nodes]) => {
+      pods.forEach(p => {
+        const key = `${p.namespace}/${p.name}`
+        const cpu = parseCPU(p.cpu)
+        const mem = parseMem(p.memory)
+        const prev = podHistory.current.get(key)
+        podHistory.current.set(key, prev
+          ? { minCpu: Math.min(prev.minCpu, cpu), maxCpu: Math.max(prev.maxCpu, cpu), minMem: Math.min(prev.minMem, mem), maxMem: Math.max(prev.maxMem, mem) }
+          : { minCpu: cpu, maxCpu: cpu, minMem: mem, maxMem: mem }
+        )
+      })
+      nodes.forEach(n => {
+        const cpu = parseCPU(n.cpu)
+        const mem = parseMem(n.memory)
+        const prev = nodeHistory.current.get(n.name)
+        nodeHistory.current.set(n.name, prev
+          ? { minCpu: Math.min(prev.minCpu, cpu), maxCpu: Math.max(prev.maxCpu, cpu), minMem: Math.min(prev.minMem, mem), maxMem: Math.max(prev.maxMem, mem) }
+          : { minCpu: cpu, maxCpu: cpu, minMem: mem, maxMem: mem }
+        )
+      })
       setPodMetrics(pods)
       setNodeMetrics(nodes)
       if (pods.length > 0) setNoMetricsServer(false)
@@ -55,20 +97,78 @@ export function Top() {
     podCol.accessor('namespace', { header: 'Namespace', cell: (i) => <span className="text-xs text-gray-500">{i.getValue()}</span> }),
     podCol.accessor('cpu', {
       header: 'CPU',
-      cell: (i) => (
-        <div className="flex items-center gap-2 min-w-28">
-          <span className="text-xs font-mono w-12">{i.getValue()}</span>
-          <UsageBar value={parseCPU(i.getValue())} max={maxCPU} />
-        </div>
-      ),
+      cell: (i) => {
+        const key = `${i.row.original.namespace}/${i.row.original.name}`
+        const h = podHistory.current.get(key)
+        const cur = parseCPU(i.getValue())
+        return (
+          <div className="min-w-36">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono w-12">{i.getValue()}</span>
+              <UsageBar value={cur} max={maxCPU} />
+            </div>
+            {h && h.minCpu !== h.maxCpu && (
+              <div className="text-[10px] font-mono text-gray-400 mt-0.5">
+                ↓<span className="text-green-600">{h.minCpu}m</span> ↑<span className="text-red-500">{h.maxCpu}m</span>
+              </div>
+            )}
+          </div>
+        )
+      },
     }),
-    podCol.accessor('memory', { header: 'Memory', cell: (i) => <span className="text-xs font-mono">{i.getValue()}</span> }),
+    podCol.accessor('memory', {
+      header: 'Memory',
+      cell: (i) => {
+        const key = `${i.row.original.namespace}/${i.row.original.name}`
+        const h = podHistory.current.get(key)
+        return (
+          <div>
+            <span className="text-xs font-mono">{i.getValue()}</span>
+            {h && h.minMem !== h.maxMem && (
+              <div className="text-[10px] font-mono text-gray-400 mt-0.5">
+                ↓<span className="text-green-600">{formatMem(h.minMem)}</span> ↑<span className="text-red-500">{formatMem(h.maxMem)}</span>
+              </div>
+            )}
+          </div>
+        )
+      },
+    }),
   ]
 
   const nodeColumns = [
     nodeCol.accessor('name', { header: 'Node', cell: (i) => <span className="text-xs font-medium text-primary-900">{i.getValue()}</span> }),
-    nodeCol.accessor('cpu', { header: 'CPU', cell: (i) => <span className="text-xs font-mono">{i.getValue()}</span> }),
-    nodeCol.accessor('memory', { header: 'Memory', cell: (i) => <span className="text-xs font-mono">{i.getValue()}</span> }),
+    nodeCol.accessor('cpu', {
+      header: 'CPU',
+      cell: (i) => {
+        const h = nodeHistory.current.get(i.row.original.name)
+        return (
+          <div>
+            <span className="text-xs font-mono">{i.getValue()}</span>
+            {h && h.minCpu !== h.maxCpu && (
+              <div className="text-[10px] font-mono text-gray-400 mt-0.5">
+                ↓<span className="text-green-600">{h.minCpu}m</span> ↑<span className="text-red-500">{h.maxCpu}m</span>
+              </div>
+            )}
+          </div>
+        )
+      },
+    }),
+    nodeCol.accessor('memory', {
+      header: 'Memory',
+      cell: (i) => {
+        const h = nodeHistory.current.get(i.row.original.name)
+        return (
+          <div>
+            <span className="text-xs font-mono">{i.getValue()}</span>
+            {h && h.minMem !== h.maxMem && (
+              <div className="text-[10px] font-mono text-gray-400 mt-0.5">
+                ↓<span className="text-green-600">{formatMem(h.minMem)}</span> ↑<span className="text-red-500">{formatMem(h.maxMem)}</span>
+              </div>
+            )}
+          </div>
+        )
+      },
+    }),
   ]
 
   const podTable = useReactTable({ data: podMetrics, columns: podColumns, state: { sorting: podSorting }, onSortingChange: setPodSorting, getCoreRowModel: getCoreRowModel(), getSortedRowModel: getSortedRowModel() })
@@ -91,7 +191,7 @@ export function Top() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-base font-bold text-primary-900">Top</h1>
-          <p className="text-[11px] text-primary-500">Auto-refreshes every 15s</p>
+          <p className="text-[11px] text-primary-500">Auto-refreshes every 15s · min/max shown after 2+ samples</p>
         </div>
         <RefreshButton onRefresh={load} />
       </div>
