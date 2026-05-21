@@ -1,4 +1,4 @@
-import type { PodSummary, DeploymentSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary, TopologyGraph, APIResourceInfo, CRDPresence } from './types'
+import type { PodSummary, DeploymentSummary, StatefulSetSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary, TopologyGraph, APIResourceInfo, CRDPresence } from './types'
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path)
@@ -23,6 +23,11 @@ export async function fetchContexts(): Promise<ContextInfo[]> {
 
 export async function fetchDeployments(namespace: string): Promise<DeploymentSummary[]> {
   const data = await get<{ items: DeploymentSummary[] }>(`/api/v1/deployments?namespace=${namespace}`)
+  return data.items
+}
+
+export async function fetchStatefulSets(namespace: string): Promise<StatefulSetSummary[]> {
+  const data = await get<{ items: StatefulSetSummary[] }>(`/api/v1/statefulsets?namespace=${namespace}`)
   return data.items
 }
 

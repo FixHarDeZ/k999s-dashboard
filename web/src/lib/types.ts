@@ -100,6 +100,13 @@ export interface NodeMetricsSummary {
   memory: string
 }
 
+export interface StatefulSetSummary {
+  name: string
+  namespace: string
+  ready: string
+  age: string
+}
+
 export interface TopologyNode {
   id: string
   kind: 'Pod' | 'Deployment' | 'Service' | 'Ingress' | string
