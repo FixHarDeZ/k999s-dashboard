@@ -1,5 +1,49 @@
 # Daily Log
 
+## 2026-05-21 — Session End: Batch D (Namespace Drill-down)
+
+### สรุปงาน
+
+**NamespaceDetail page** (`web/src/pages/NamespaceDetail.tsx`)
+- Route `/namespaces/:name` → NamespaceDetail — ใช้ `useParams` รับ namespace จาก URL
+- Fetch 7 kinds พร้อมกัน (`Promise.all`): Pods, Deployments, StatefulSets, Services, ConfigMaps, Secrets, Ingresses
+- แต่ละ section collapsible — แสดง name + detail + YAML button
+- YAML button → `YamlSidePanel` editable ด้วย resource params ที่ถูกต้องต่อ kind
+- ← Back ปุ่ม (`useNavigate(-1)`)
+
+**Namespaces.tsx** — namespace name เป็น clickable `<Link to="/namespaces/:name">`
+
+### Commits (2 commits)
+```
+2f8c91a feat(namespaces): add NamespaceDetail page with 7 resource kind sections
+ccc0a17 feat(namespaces): make namespace names clickable links to detail page
+```
+
+---
+
+## 2026-05-21 — Task 2: Make namespace names clickable links
+
+### สรุปงาน
+Made namespace names in the Namespaces.tsx table clickable, linking to the namespace detail page (`/namespaces/:name`) that was added in Task 1.
+
+**Frontend — `web/src/pages/Namespaces.tsx`**
+- Added `Link` import from `react-router-dom`
+- Replaced name column cell from plain `<span>` to `<Link to={`/namespaces/${i.getValue()}`}>`
+- Updated styling: `text-primary-600 hover:text-primary-900 hover:underline` for link appearance
+
+**Test Results:**
+- TypeScript check: pass ✓
+- Go tests: all pass ✓
+- Frontend tests: 31/31 pass ✓
+- Binary build: success ✓
+
+**Commit:**
+```
+ccc0a17 feat(namespaces): make namespace names clickable links to detail page
+```
+
+---
+
 ## 2026-05-21 — Session End: Batch C (Helm Menu)
 
 ### สรุปงาน

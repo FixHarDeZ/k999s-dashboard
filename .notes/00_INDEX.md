@@ -132,7 +132,16 @@ ai:
 | Cordon/Drain nodes | ✅ Implemented (2026-05-21) — Cordon/Uncordon/Drain buttons + ConfirmModal |
 | Ingress page | ✅ Implemented (2026-05-21) — Name/NS/Hosts/Address/Ports/Age table |
 | Helm menu | ✅ Implemented (2026-05-21) — list releases + delete via ConfirmModal |
-| Namespace drill-down | Not implemented (planned Batch D) |
+| Namespace drill-down | ✅ Implemented (2026-05-21) — `/namespaces/:name` page, 7 kinds, YAML edit |
+
+## Batch D — Namespace Drill-down (2026-05-21, pushed to main)
+
+| เรื่อง | รายละเอียด |
+|---|---|
+| **NamespaceDetail page** | `/namespaces/:name` — 7 collapsible sections (Pods/Deploy/STS/Svc/CM/Sec/Ingress) + YAML editable |
+| **Namespaces.tsx** | namespace name เป็น `<Link>` → navigate ไปยัง NamespaceDetail |
+
+---
 
 ## Batch C — Helm Menu (2026-05-21, pushed to main)
 
