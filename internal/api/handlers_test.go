@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/k999s/dashboard/internal/api"
+	"github.com/k999s/dashboard/internal/config"
 	"github.com/k999s/dashboard/internal/k8s"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,7 +26,7 @@ func newTestRouter() *api.Router {
 		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}},
 	)
 	client := k8s.NewClientFromKubernetesClient(fakeK8s, "test-context")
-	return api.NewRouter(client, embed.FS{}, nil, nil)
+	return api.NewRouter(client, embed.FS{}, nil, nil, &config.Config{})
 }
 
 func TestGetPods_ReturnsJSON(t *testing.T) {

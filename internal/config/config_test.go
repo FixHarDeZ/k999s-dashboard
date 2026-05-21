@@ -26,6 +26,6 @@ func TestLoad_CustomKubeconfigPath(t *testing.T) {
 func TestLoad_AIDefaults(t *testing.T) {
 	cfg, err := config.Load("")
 	require.NoError(t, err)
-	assert.Equal(t, "ollama", cfg.AI.Provider)
-	assert.Equal(t, "llama3.2", cfg.AI.Model)
+	assert.Equal(t, "openrouter", cfg.AI.Provider)
+	assert.Equal(t, "deepseek/deepseek-v4-flash:free", cfg.AI.Model)
 }
