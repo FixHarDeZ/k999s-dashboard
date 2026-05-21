@@ -1,5 +1,66 @@
 # Daily Log
 
+## 2026-05-21 — Feature: Settings page — AI Diagnostic config
+
+### สรุปงาน
+เพิ่มหน้า Settings สำหรับ config AI Diagnostic provider ที่ save ลง `~/.k999s/config.yaml` ได้
+
+**Go backend:**
+- `internal/config/config.go`: เพิ่ม `Save()` method เขียน YAML ลงไฟล์
+- `internal/api/router.go`: เพิ่ม `cfg *config.Config` + `mu sync.RWMutex` ใน Router struct, เพิ่ม routes GET/PUT `/api/v1/settings`, อัปเดต `NewRouter` signature
+- `internal/api/handlers.go`: เพิ่ม `handleGetSettings` (mask API key) + `handleSaveSettings` (save + hot-reload diagnostic provider)
+- `cmd/k999s/main.go`: ส่ง `cfg` ไปด้วย
+
+**Frontend:**
+- `web/src/lib/types.ts`: เพิ่ม `AISettings` interface
+- `web/src/lib/api.ts`: เพิ่ม `fetchSettings` + `saveSettings`
+- `web/src/pages/Settings.tsx`: หน้า Settings ใหม่ — provider selector (Ollama/Anthropic/OpenAI/OpenRouter), model presets, API key field (show/hide), base URL
+- `web/src/App.tsx`: เพิ่ม route `/settings`
+- `web/src/components/layout/Sidebar.tsx`: เพิ่ม Settings link ที่ด้านล่าง sidebar (pinned)
+
+---
+
+## 2026-05-21 — Feature: Pods containers, Topology fixes, ResourceExplorer refresh
+
+### สรุปงาน
+
+**1. Pods — Container info expandable row**
+- Go: เพิ่ม `ContainerInfo` struct ใน `types.go`, อัปเดต `toPodSummary` ให้ populate containers (init/sidecar/main) พร้อม state/reason
+- Frontend: เพิ่ม `ContainerChip` component + expandable sub-row กด ▶/▼ ที่ pod name เพื่อดู container detail
+- **ไฟล์:** `internal/k8s/types.go`, `internal/k8s/client.go`, `web/src/lib/types.ts`, `web/src/pages/Pods.tsx`
+
+**2. Topology — crash fix + error detail panel**
+- เพิ่ม error state + try/catch รอบ dagre layout ป้องกัน white page
+- กด red node → fetch pod detail → แสดง container statuses + error reasons
+- เพิ่มปุ่ม "AI Diagnose" เปิด DiagnosticPanel ได้เลย
+- **ไฟล์:** `web/src/pages/Topology.tsx`
+
+**3. ResourceExplorer — auto-refresh on context/namespace change**
+- `AppLayout.tsx` ส่ง `currentContext` ใน outlet context
+- ResourceExplorer watch context (reset + re-fetch API resources) และ watch namespace (re-fetch items)
+- **ไฟล์:** `web/src/components/layout/AppLayout.tsx`, `web/src/pages/ResourceExplorer.tsx`
+
+---
+
+## 2026-05-21 — Fix: ResourceExplorer view toggle + Namespace dropdown scroll
+
+### สรุปงาน
+
+**1. ResourceExplorer — view mode toggle (Full/Clean)**
+- เพิ่ม `viewClean` state + toggle button [Full][Clean] ใน header ของ YAML panel
+- `Clean` = strip `status` + `metadata.managedFields` (เหมือน `kubectl edit`)
+- `Full` = full YAML จาก server (original)
+- Extract `stripServerFields()` helper ใช้ร่วมกันทั้ง view toggle และ Edit mode
+- Copy button ก็ copy ตาม mode ที่เลือกด้วย
+- **ไฟล์:** `web/src/pages/ResourceExplorer.tsx`
+
+**2. Namespace dropdown scroll bug**
+- เดิม dropdown มี `overflow: hidden` แต่ไม่มี `maxHeight` เลย scroll ไม่ได้เมื่อ namespace เยอะ
+- Fix: เปลี่ยนเป็น `maxHeight: 280, overflowY: 'auto'`
+- **ไฟล์:** `web/src/components/layout/TopBar.tsx`
+
+---
+
 ## 2026-05-20 — k999s Dashboard: Initial Build (Full Project)
 
 ### สรุปงานวันนี้

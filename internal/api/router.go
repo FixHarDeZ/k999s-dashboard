@@ -4,9 +4,11 @@ import (
 	"embed"
 	"io/fs"
 	"net/http"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/k999s/dashboard/internal/config"
 	"github.com/k999s/dashboard/internal/diagnostic"
 	"github.com/k999s/dashboard/internal/k8s"
 	"github.com/k999s/dashboard/internal/ws"
@@ -17,15 +19,17 @@ type Router struct {
 	k8s        *k8s.Client
 	hub        *ws.Hub
 	diagnostic diagnostic.Provider
+	cfg        *config.Config
+	mu         sync.RWMutex
 }
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
-func NewRouter(k8sClient *k8s.Client, webFS embed.FS, hub *ws.Hub, diag diagnostic.Provider) *Router {
+func NewRouter(k8sClient *k8s.Client, webFS embed.FS, hub *ws.Hub, diag diagnostic.Provider, cfg *config.Config) *Router {
 	gin.SetMode(gin.ReleaseMode)
-	r := &Router{engine: gin.New(), k8s: k8sClient, hub: hub, diagnostic: diag}
+	r := &Router{engine: gin.New(), k8s: k8sClient, hub: hub, diagnostic: diag, cfg: cfg}
 	r.engine.Use(gin.Recovery())
 	r.engine.Use(corsMiddleware())
 
@@ -55,6 +59,8 @@ func NewRouter(k8sClient *k8s.Client, webFS embed.FS, hub *ws.Hub, diag diagnost
 	v1.POST("/deployments/:namespace/:name/scale", r.handleScaleDeployment)
 	v1.POST("/deployments/:namespace/:name/rollout-restart", r.handleRolloutRestartDeployment)
 	v1.DELETE("/deployments/:namespace/:name", r.handleDeleteDeployment)
+	v1.GET("/settings", r.handleGetSettings)
+	v1.PUT("/settings", r.handleSaveSettings)
 
 	r.engine.GET("/ws/pods/:namespace/:name/logs", r.handlePodLogs)
 	r.engine.GET("/ws/pods/:namespace/:name/exec", r.handlePodExec)

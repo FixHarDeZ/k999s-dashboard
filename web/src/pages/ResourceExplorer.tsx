@@ -31,8 +31,9 @@ function groupResources(resources: APIResourceInfo[]): Record<string, APIResourc
 }
 
 export function ResourceExplorer() {
-  const ctx = useOutletContext<{ namespace: string } | null>()
+  const ctx = useOutletContext<{ namespace: string; context?: string } | null>()
   const namespace = ctx?.namespace ?? ''
+  const context = ctx?.context ?? ''
 
   const [allResources, setAllResources] = useState<APIResourceInfo[]>([])
   const [selected, setSelected] = useState<APIResourceInfo | null>(null)
@@ -49,10 +50,34 @@ export function ResourceExplorer() {
   const [loadingYaml, setLoadingYaml] = useState(false)
   const [filter, setFilter] = useState('')
   const [itemsError, setItemsError] = useState<string | null>(null)
+  const [viewClean, setViewClean] = useState(false)
 
+  // Effect 1: context changes → reset everything + re-fetch API resources
   useEffect(() => {
     fetchAPIResources().then(setAllResources).catch(console.error)
-  }, [])
+    setSelected(null)
+    setItems([])
+    setSelectedItem(null)
+    setRawJson('')
+    setEditMode(false)
+    setItemsError(null)
+  }, [context])
+
+  // Effect 2: namespace changes → re-fetch items if a resource kind is selected
+  useEffect(() => {
+    if (!selected) return
+    setItems([])
+    setSelectedItem(null)
+    setRawJson('')
+    setEditMode(false)
+    setItemsError(null)
+    setLoadingItems(true)
+    fetchResourceList(selected.group, selected.version, selected.name, namespace)
+      .then(setItems)
+      .catch((e) => { setItemsError((e as Error).message); setItems([]) })
+      .finally(() => setLoadingItems(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [namespace])
 
   const handleSelectResource = useCallback(async (res: APIResourceInfo) => {
     setSelected(res)
@@ -94,6 +119,18 @@ export function ResourceExplorer() {
     }
   }, [selected, namespace])
 
+  function stripServerFields(jsonStr: string): string {
+    const obj = JSON.parse(jsonStr) as Record<string, unknown>
+    const editable: Record<string, unknown> = { ...obj }
+    delete editable.status
+    if (editable.metadata && typeof editable.metadata === 'object') {
+      const meta = { ...(editable.metadata as Record<string, unknown>) }
+      delete meta.managedFields
+      editable.metadata = meta
+    }
+    return yaml.dump(editable, { indent: 2, lineWidth: -1 })
+  }
+
   // Convert JSON to YAML for display/editing
   const yamlContent = (() => {
     if (!rawJson || rawJson.startsWith('// Error')) return rawJson
@@ -101,8 +138,20 @@ export function ResourceExplorer() {
     catch { return rawJson }
   })()
 
+  const displayContent = (() => {
+    if (!rawJson || rawJson.startsWith('// Error')) return yamlContent
+    if (!viewClean) return yamlContent
+    try { return stripServerFields(rawJson) }
+    catch { return yamlContent }
+  })()
+
   const handleEdit = () => {
-    setEditContent(yamlContent)
+    let content = yamlContent
+    if (rawJson && !rawJson.startsWith('// Error')) {
+      try { content = stripServerFields(rawJson) }
+      catch { content = yamlContent }
+    }
+    setEditContent(content)
     setEditMode(true)
     setApplyError(null)
     setApplySuccess(false)
@@ -134,7 +183,7 @@ export function ResourceExplorer() {
   }
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(yamlContent).catch(console.error)
+    navigator.clipboard.writeText(displayContent).catch(console.error)
   }
 
   const grouped = groupResources(allResources)
@@ -264,6 +313,17 @@ export function ResourceExplorer() {
                 <div style={{ display: 'flex', gap: 6 }}>
                   {!editMode ? (
                     <>
+                      {/* View mode toggle */}
+                      <div style={{ display: 'flex', border: '1px solid #c7d2fe', borderRadius: 4, overflow: 'hidden' }}>
+                        <button onClick={() => setViewClean(false)}
+                          style={{ fontSize: 10, padding: '2px 7px', border: 'none', background: !viewClean ? '#c7d2fe' : '#fff', color: !viewClean ? '#3730a3' : '#6b7280', cursor: 'pointer', fontWeight: !viewClean ? 600 : 400 }}>
+                          Full
+                        </button>
+                        <button onClick={() => setViewClean(true)}
+                          style={{ fontSize: 10, padding: '2px 7px', border: 'none', background: viewClean ? '#c7d2fe' : '#fff', color: viewClean ? '#3730a3' : '#6b7280', cursor: 'pointer', fontWeight: viewClean ? 600 : 400 }}>
+                          Clean
+                        </button>
+                      </div>
                       <button onClick={handleCopy}
                         style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, border: '1px solid #c7d2fe', background: '#fff', color: '#4338ca', cursor: 'pointer' }}>
                         📋 Copy
@@ -320,7 +380,7 @@ export function ResourceExplorer() {
                   fontFamily: '"Fira Code", monospace', fontSize: 11, lineHeight: 1.6,
                   whiteSpace: 'pre-wrap', wordBreak: 'break-all',
                 }}>
-                  {loadingYaml ? 'Loading...' : yamlContent}
+                  {loadingYaml ? 'Loading...' : displayContent}
                 </pre>
               )}
             </>

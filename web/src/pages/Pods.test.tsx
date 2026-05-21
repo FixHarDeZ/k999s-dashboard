@@ -11,8 +11,8 @@ vi.mock('@/hooks/useWebSocket', () => ({ useWebSocket: vi.fn() }))
 window.confirm = vi.fn(() => true)
 
 const mockPods = [
-  { name: 'nginx-abc', namespace: 'default', status: 'Running', ready: '1/1', restarts: 0, age: '2h', node: 'node-1', ip: '10.0.0.1' },
-  { name: 'crash-pod', namespace: 'default', status: 'CrashLoopBackOff', ready: '0/1', restarts: 5, age: '30m', node: 'node-2', ip: '10.0.0.2' },
+  { name: 'nginx-abc', namespace: 'default', status: 'Running', ready: '1/1', restarts: 0, age: '2h', node: 'node-1', ip: '10.0.0.1', containers: [] },
+  { name: 'crash-pod', namespace: 'default', status: 'CrashLoopBackOff', ready: '0/1', restarts: 5, age: '30m', node: 'node-2', ip: '10.0.0.2', containers: [] },
 ]
 
 function renderPods() {

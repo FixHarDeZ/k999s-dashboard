@@ -15,6 +15,59 @@ import (
 	"github.com/k999s/dashboard/internal/diagnostic"
 )
 
+func maskAPIKey(key string) string {
+	if len(key) <= 4 {
+		return strings.Repeat("•", len(key))
+	}
+	return strings.Repeat("•", len(key)-4) + key[len(key)-4:]
+}
+
+func (r *Router) handleGetSettings(c *gin.Context) {
+	r.mu.RLock()
+	ai := r.cfg.AI
+	r.mu.RUnlock()
+	masked := ai.APIKey
+	if masked != "" {
+		masked = maskAPIKey(masked)
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"provider": ai.Provider,
+		"model":    ai.Model,
+		"apiKey":   masked,
+		"baseURL":  ai.BaseURL,
+	})
+}
+
+func (r *Router) handleSaveSettings(c *gin.Context) {
+	var body struct {
+		Provider string `json:"provider"`
+		Model    string `json:"model"`
+		APIKey   string `json:"apiKey"`
+		BaseURL  string `json:"baseURL"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.cfg.AI.Provider = body.Provider
+	r.cfg.AI.Model = body.Model
+	r.cfg.AI.BaseURL = body.BaseURL
+	// Only update key if a real key is sent (not a masked placeholder)
+	if body.APIKey != "" && !strings.Contains(body.APIKey, "•") {
+		r.cfg.AI.APIKey = body.APIKey
+	}
+	if err := r.cfg.Save(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	// Hot-reload diagnostic provider
+	provider, _ := diagnostic.New(r.cfg.AI)
+	r.diagnostic = provider
+	c.Status(http.StatusNoContent)
+}
+
 func (r *Router) handleListPods(c *gin.Context) {
 	namespace := c.Query("namespace")
 	pods, err := r.k8s.ListPods(c.Request.Context(), namespace)
@@ -403,9 +456,12 @@ func (r *Router) handleDiagnose(c *gin.Context) {
 	}
 	defer conn.Close()
 
-	if r.diagnostic == nil {
+	r.mu.RLock()
+	diag := r.diagnostic
+	r.mu.RUnlock()
+	if diag == nil {
 		_ = conn.WriteMessage(websocket.TextMessage, []byte(
-			"AI diagnostic is not configured.\n\nAdd to ~/.k999s/config.yaml:\n\nai:\n  provider: ollama\n  model: llama3.2\n",
+			"AI diagnostic is not configured.\n\nGo to Settings and configure a provider, or add to ~/.k999s/config.yaml:\n\nai:\n  provider: ollama\n  model: llama3.2\n",
 		))
 		return
 	}
@@ -452,12 +508,13 @@ func (r *Router) handleDiagnose(c *gin.Context) {
 		Events:    strings.Join(eventLines, "\n"),
 	}
 
-	ch, err := r.diagnostic.Diagnose(ctx, input)
+	ch, err := diag.Diagnose(ctx, input)
 	if err != nil {
 		_ = conn.WriteMessage(websocket.TextMessage, []byte("Error: "+err.Error()))
 		return
 	}
 
+	tokenCount := 0
 	for token := range ch {
 		if ctx.Err() != nil {
 			break
@@ -465,5 +522,11 @@ func (r *Router) handleDiagnose(c *gin.Context) {
 		if err := conn.WriteMessage(websocket.TextMessage, []byte(token)); err != nil {
 			break
 		}
+		tokenCount++
+	}
+	if tokenCount == 0 && ctx.Err() == nil {
+		_ = conn.WriteMessage(websocket.TextMessage, []byte(
+			"AI provider returned an empty response.\n\nPossible causes:\n• Model name is incorrect\n• API key is invalid or expired\n• Provider is not reachable\n\nCheck Settings or ~/.k999s/config.yaml",
+		))
 	}
 }

@@ -130,6 +130,20 @@ func (c *Client) GetContexts() ([]ContextInfo, error) {
 	return contexts, nil
 }
 
+// containerStateInfo extracts the state name and reason from a ContainerState.
+func containerStateInfo(s corev1.ContainerState) (state, reason string) {
+	if s.Running != nil {
+		return "running", ""
+	}
+	if s.Waiting != nil {
+		return "waiting", s.Waiting.Reason
+	}
+	if s.Terminated != nil {
+		return "terminated", s.Terminated.Reason
+	}
+	return "unknown", ""
+}
+
 func toPodSummary(p corev1.Pod) PodSummary {
 	readyCount := 0
 	totalCount := len(p.Spec.Containers)
@@ -140,15 +154,74 @@ func toPodSummary(p corev1.Pod) PodSummary {
 		}
 		restarts += cs.RestartCount
 	}
+
+	// Build a lookup map from container name → status for init containers.
+	initStatusByName := make(map[string]corev1.ContainerStatus, len(p.Status.InitContainerStatuses))
+	for _, cs := range p.Status.InitContainerStatuses {
+		initStatusByName[cs.Name] = cs
+	}
+	// And for regular containers.
+	mainStatusByName := make(map[string]corev1.ContainerStatus, len(p.Status.ContainerStatuses))
+	for _, cs := range p.Status.ContainerStatuses {
+		mainStatusByName[cs.Name] = cs
+	}
+
+	var containers []ContainerInfo
+
+	// Init containers (and sidecar containers, identified by RestartPolicy == "Always").
+	for _, c := range p.Spec.InitContainers {
+		ctype := "init"
+		if c.RestartPolicy != nil && string(*c.RestartPolicy) == "Always" {
+			ctype = "sidecar"
+		}
+		var ready bool
+		var restartCount int32
+		state, reason := "unknown", ""
+		if cs, ok := initStatusByName[c.Name]; ok {
+			ready = cs.Ready
+			restartCount = cs.RestartCount
+			state, reason = containerStateInfo(cs.State)
+		}
+		containers = append(containers, ContainerInfo{
+			Name:     c.Name,
+			Type:     ctype,
+			Ready:    ready,
+			Restarts: restartCount,
+			State:    state,
+			Reason:   reason,
+		})
+	}
+
+	// Main containers.
+	for _, c := range p.Spec.Containers {
+		var ready bool
+		var restartCount int32
+		state, reason := "unknown", ""
+		if cs, ok := mainStatusByName[c.Name]; ok {
+			ready = cs.Ready
+			restartCount = cs.RestartCount
+			state, reason = containerStateInfo(cs.State)
+		}
+		containers = append(containers, ContainerInfo{
+			Name:     c.Name,
+			Type:     "main",
+			Ready:    ready,
+			Restarts: restartCount,
+			State:    state,
+			Reason:   reason,
+		})
+	}
+
 	return PodSummary{
-		Name:      p.Name,
-		Namespace: p.Namespace,
-		Status:    string(p.Status.Phase),
-		Ready:     fmt.Sprintf("%d/%d", readyCount, totalCount),
-		Restarts:  restarts,
-		Age:       formatAge(p.CreationTimestamp.Time),
-		Node:      p.Spec.NodeName,
-		IP:        p.Status.PodIP,
+		Name:       p.Name,
+		Namespace:  p.Namespace,
+		Status:     string(p.Status.Phase),
+		Ready:      fmt.Sprintf("%d/%d", readyCount, totalCount),
+		Restarts:   restarts,
+		Age:        formatAge(p.CreationTimestamp.Time),
+		Node:       p.Spec.NodeName,
+		IP:         p.Status.PodIP,
+		Containers: containers,
 	}
 }
 

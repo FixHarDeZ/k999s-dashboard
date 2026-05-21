@@ -54,7 +54,7 @@ export function AppLayout() {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar detectedCRDs={detectedCRDs} />
         <main className="flex-1 overflow-auto p-4">
-          <Outlet context={{ namespace }} />
+          <Outlet context={{ namespace, context: currentContext }} />
         </main>
       </div>
     </div>

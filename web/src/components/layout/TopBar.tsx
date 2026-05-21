@@ -44,7 +44,8 @@ function Dropdown({ value, options, onChange, placeholder }: DropdownProps) {
           position: 'absolute', top: '100%', left: 0, marginTop: 4,
           background: '#fff', border: '1px solid #e0e7ff',
           borderRadius: 8, boxShadow: '0 4px 16px rgba(79,70,229,0.12)',
-          minWidth: 180, zIndex: 1000, overflow: 'hidden',
+          minWidth: 180, zIndex: 1000,
+          maxHeight: 280, overflowY: 'auto',
         }}>
           {options.map((opt) => (
             <button

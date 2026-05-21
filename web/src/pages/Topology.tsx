@@ -8,8 +8,9 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import dagre from 'dagre'
-import { fetchTopology } from '@/lib/api'
+import { fetchTopology, fetchResourceGet } from '@/lib/api'
 import type { TopologyGraph } from '@/lib/types'
+import { DiagnosticPanel } from '@/components/DiagnosticPanel'
 
 const NODE_WIDTH = 160
 const NODE_HEIGHT = 60
@@ -38,13 +39,19 @@ const KIND_ICONS: Record<string, string> = {
   Ingress: '🌐', Service: '⚙️', Deployment: '🚀', Pod: '📦',
 }
 
+const ERROR_STATUSES = ['Failed', 'Error', 'CrashLoopBackOff', 'Unknown', 'OOMKilled', 'Evicted']
+
+function isErrorNode(status: string): boolean {
+  return ERROR_STATUSES.some((s) => status.includes(s))
+}
+
 function getNodeStyle(kind: string, status: string) {
   const colors = KIND_COLORS[kind] ?? { bg: '#f9fafb', border: '#9ca3af', text: '#374151' }
-  const isError = ['Failed', 'Error', 'CrashLoopBackOff', 'Unknown'].some((s) => status.includes(s))
+  const hasError = isErrorNode(status)
   return {
-    background: isError ? '#fef2f2' : colors.bg,
-    border: `2px solid ${isError ? '#ef4444' : colors.border}`,
-    color: isError ? '#dc2626' : colors.text,
+    background: hasError ? '#fef2f2' : colors.bg,
+    border: `2px solid ${hasError ? '#ef4444' : colors.border}`,
+    color: hasError ? '#dc2626' : colors.text,
     borderRadius: 8,
     padding: '8px 12px',
     fontSize: 11,
@@ -87,10 +94,72 @@ function buildFlowElements(graph: TopologyGraph) {
   return { nodes: laid, edges: rfEdges }
 }
 
-function NodeDetail({ node, onClose }: { node: TopologyGraph['nodes'][0]; onClose: () => void }) {
+interface ContainerStatus {
+  name: string
+  ready?: boolean
+  restartCount?: number
+  state?: {
+    waiting?: { reason?: string }
+    running?: { startedAt?: string }
+    terminated?: { reason?: string; exitCode?: number }
+  }
+}
+
+function NodeDetail({
+  node,
+  onClose,
+  onDiagnose,
+}: {
+  node: TopologyGraph['nodes'][0]
+  onClose: () => void
+  onDiagnose?: (ns: string, name: string) => void
+}) {
+  const [podDetail, setPodDetail] = useState<Record<string, unknown> | null>(null)
+  const [loadingDetail, setLoadingDetail] = useState(false)
+
+  const isPodError = node.kind === 'Pod' && isErrorNode(node.status)
+
+  useEffect(() => {
+    if (!isPodError) return
+    setLoadingDetail(true)
+    fetchResourceGet('', 'v1', 'pods', node.namespace, node.name)
+      .then((jsonStr) => {
+        try {
+          setPodDetail(JSON.parse(jsonStr) as Record<string, unknown>)
+        } catch {
+          setPodDetail(null)
+        }
+      })
+      .catch(() => setPodDetail(null))
+      .finally(() => setLoadingDetail(false))
+  }, [isPodError, node.namespace, node.name])
+
+  const containerStatuses: ContainerStatus[] = (() => {
+    try {
+      const status = (podDetail?.status as Record<string, unknown> | undefined)
+      return (status?.containerStatuses as ContainerStatus[] | undefined) ?? []
+    } catch {
+      return []
+    }
+  })()
+
+  function containerStateLabel(cs: ContainerStatus): string {
+    if (cs.state?.waiting?.reason) return cs.state.waiting.reason
+    if (cs.state?.terminated?.reason) return cs.state.terminated.reason
+    if (cs.state?.running) return 'Running'
+    return 'Unknown'
+  }
+
+  function containerStateColor(cs: ContainerStatus): string {
+    const label = containerStateLabel(cs)
+    if (label === 'Running') return '#22c55e'
+    if (isErrorNode(label)) return '#ef4444'
+    return '#f59e0b'
+  }
+
   return (
     <div style={{
-      position: 'absolute', top: 12, right: 12, width: 260, zIndex: 10,
+      position: 'absolute', top: 12, right: 12, width: 280, zIndex: 10,
       background: '#fff', border: '1px solid #e0e7ff', borderRadius: 10,
       boxShadow: '0 4px 20px rgba(79,70,229,0.12)', padding: 14, fontSize: 11,
     }}>
@@ -113,6 +182,46 @@ function NodeDetail({ node, onClose }: { node: TopologyGraph['nodes'][0]; onClos
           </tr>
         ))}
       </table>
+
+      {isPodError && (
+        <div style={{ marginTop: 10 }}>
+          {loadingDetail ? (
+            <div style={{ color: '#9ca3af', fontSize: 10 }}>Loading container details...</div>
+          ) : containerStatuses.length > 0 ? (
+            <div>
+              <div style={{ fontWeight: 600, color: '#374151', marginBottom: 4 }}>Containers:</div>
+              {containerStatuses.map((cs) => (
+                <div key={cs.name} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+                  <span style={{ color: containerStateColor(cs) }}>●</span>
+                  <span style={{ color: '#374151', fontWeight: 600 }}>{cs.name}:</span>
+                  <span style={{ color: containerStateColor(cs) }}>{containerStateLabel(cs)}</span>
+                  {(cs.restartCount ?? 0) > 0 && (
+                    <span style={{ color: '#9ca3af' }}>(restarts: {cs.restartCount})</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {onDiagnose && (
+            <button
+              onClick={() => onDiagnose(node.namespace, node.name)}
+              style={{
+                marginTop: 8,
+                background: '#7c3aed',
+                color: 'white',
+                padding: '4px 10px',
+                borderRadius: 4,
+                fontSize: 10,
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              🔍 AI Diagnose
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -122,13 +231,20 @@ export function Topology() {
   const namespace = ctx?.namespace || 'default'
   const [graph, setGraph] = useState<TopologyGraph | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [selectedNode, setSelectedNode] = useState<TopologyGraph['nodes'][0] | null>(null)
+  const [diagTarget, setDiagTarget] = useState<{ namespace: string; name: string } | null>(null)
 
   const load = useCallback(() => {
     setLoading(true)
+    setError(null)
     fetchTopology(namespace)
       .then(setGraph)
-      .catch(console.error)
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err)
+        setError(msg)
+        setGraph(null)
+      })
       .finally(() => setLoading(false))
   }, [namespace])
 
@@ -136,7 +252,11 @@ export function Topology() {
 
   const { nodes: initialNodes, edges: initialEdges } = useMemo(() => {
     if (!graph) return { nodes: [], edges: [] }
-    return buildFlowElements(graph)
+    try {
+      return buildFlowElements(graph)
+    } catch {
+      return { nodes: [], edges: [] }
+    }
   }, [graph])
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
@@ -144,9 +264,14 @@ export function Topology() {
 
   useEffect(() => {
     if (!graph) return
-    const { nodes: n, edges: e } = buildFlowElements(graph)
-    setNodes(n)
-    setEdges(e)
+    try {
+      const { nodes: n, edges: e } = buildFlowElements(graph)
+      setNodes(n)
+      setEdges(e)
+    } catch {
+      setNodes([])
+      setEdges([])
+    }
   }, [graph, setNodes, setEdges])
 
   return (
@@ -168,13 +293,22 @@ export function Topology() {
         </div>
       )}
 
-      {!loading && graph && graph.nodes.length === 0 && (
+      {!loading && error && (
+        <div style={{
+          background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8,
+          padding: '12px 16px', color: '#dc2626', fontSize: 13, marginTop: 8,
+        }}>
+          <strong>Error loading topology:</strong> {error}
+        </div>
+      )}
+
+      {!loading && !error && graph && graph.nodes.length === 0 && (
         <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
           No resources found in namespace "{namespace || 'default'}"
         </div>
       )}
 
-      {!loading && graph && graph.nodes.length > 0 && (
+      {!loading && !error && graph && graph.nodes.length > 0 && (
         <div style={{ height: 'calc(100% - 50px)', border: '1px solid #e0e7ff', borderRadius: 10, overflow: 'hidden', position: 'relative' }}>
           <ReactFlow
             nodes={nodes}
@@ -197,9 +331,24 @@ export function Topology() {
           </ReactFlow>
 
           {selectedNode && (
-            <NodeDetail node={selectedNode} onClose={() => setSelectedNode(null)} />
+            <NodeDetail
+              node={selectedNode}
+              onClose={() => setSelectedNode(null)}
+              onDiagnose={(ns, name) => {
+                setDiagTarget({ namespace: ns, name })
+                setSelectedNode(null)
+              }}
+            />
           )}
         </div>
+      )}
+
+      {diagTarget && (
+        <DiagnosticPanel
+          namespace={diagTarget.namespace}
+          podName={diagTarget.name}
+          onClose={() => setDiagTarget(null)}
+        />
       )}
     </div>
   )

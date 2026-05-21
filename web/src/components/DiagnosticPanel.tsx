@@ -65,7 +65,13 @@ export function DiagnosticPanel({ namespace, podName, onClose }: DiagnosticPanel
         {status === 'connecting' && (
           <div style={{ color: '#818cf8', fontSize: 12 }}>Collecting pod logs and events...</div>
         )}
-        {text || null}
+        {text}
+        {status === 'done' && !text && (
+          <div style={{ color: '#9ca3af', fontSize: 12, fontStyle: 'italic' }}>
+            No response received from AI provider.<br />
+            Check your provider and model in <strong>Settings</strong> or <code style={{ background: '#f3f4f6', padding: '1px 4px', borderRadius: 3 }}>~/.k999s/config.yaml</code>.
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 

@@ -162,3 +162,19 @@ export async function fetchDetectedCRDs(): Promise<CRDPresence> {
 export async function switchContext(contextName: string): Promise<void> {
   await action('/api/v1/contexts/switch', 'POST', { context: contextName })
 }
+
+export async function fetchSettings(): Promise<{ provider: string; model: string; apiKey: string; baseURL: string }> {
+  return get('/api/v1/settings')
+}
+
+export async function saveSettings(settings: { provider: string; model: string; apiKey: string; baseURL: string }): Promise<void> {
+  const res = await fetch('/api/v1/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }))
+    throw new Error((err as { error: string }).error)
+  }
+}

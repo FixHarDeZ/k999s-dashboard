@@ -16,10 +16,42 @@ import { LogViewer } from '@/components/LogViewer'
 import { ExecTerminal } from '@/components/ExecTerminal'
 import { DiagnosticPanel } from '@/components/DiagnosticPanel'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import type { PodSummary } from '@/lib/types'
+import type { PodSummary, ContainerInfo } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 const columnHelper = createColumnHelper<PodSummary>()
+
+const CONTAINER_TYPE_STYLE: Record<ContainerInfo['type'], { label: string; color: string; bg: string }> = {
+  main:    { label: 'main',    color: '#4338ca', bg: '#eef2ff' },
+  sidecar: { label: 'sidecar', color: '#7c3aed', bg: '#f5f3ff' },
+  init:    { label: 'init',    color: '#4b5563', bg: '#f3f4f6' },
+}
+
+const CONTAINER_STATE_COLOR: Record<string, string> = {
+  running:    '#16a34a',
+  waiting:    '#d97706',
+  terminated: '#dc2626',
+  unknown:    '#9ca3af',
+}
+
+function ContainerChip({ c }: { c: ContainerInfo }) {
+  const ts = CONTAINER_TYPE_STYLE[c.type] ?? CONTAINER_TYPE_STYLE.main
+  const dotColor = CONTAINER_STATE_COLOR[c.state] ?? CONTAINER_STATE_COLOR.unknown
+  const label = c.reason ? `${c.state}: ${c.reason}` : c.state
+  return (
+    <span className="inline-flex items-center gap-1 mr-2 mb-1">
+      <span
+        className="text-[10px] font-semibold rounded px-1 py-0.5"
+        style={{ color: ts.color, background: ts.bg }}
+      >
+        {ts.label}
+      </span>
+      <span className="text-xs font-medium text-gray-700">{c.name}</span>
+      <span className="text-xs" style={{ color: dotColor }}>●</span>
+      <span className="text-[10px] text-gray-500">{label}</span>
+    </span>
+  )
+}
 
 function StatusBadge({ status }: { status: string }) {
   const isHealthy = status === 'Running' || status === 'Succeeded'
@@ -41,6 +73,7 @@ export function Pods() {
   const [logTarget, setLogTarget] = useState<{ pod: PodSummary; containers: string[] } | null>(null)
   const [execTarget, setExecTarget] = useState<{ pod: PodSummary; container: string } | null>(null)
   const [diagTarget, setDiagTarget] = useState<PodSummary | null>(null)
+  const [expandedPod, setExpandedPod] = useState<string | null>(null)
 
   const handleOpenExec = async (pod: PodSummary) => {
     const containers = await fetchPodContainers(pod.namespace, pod.name).catch(() => [])
@@ -79,7 +112,25 @@ export function Pods() {
   }
 
   const columns = [
-    columnHelper.accessor('name', { header: 'Name', cell: (i) => <span className="font-medium text-primary-900 text-xs">{i.getValue()}</span> }),
+    columnHelper.accessor('name', {
+      header: 'Name',
+      cell: (i) => {
+        const pod = i.row.original
+        const isExpanded = expandedPod === pod.name
+        return (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setExpandedPod(isExpanded ? null : pod.name)}
+              className="text-[10px] text-gray-400 hover:text-primary-600 w-4 shrink-0"
+              title={isExpanded ? 'Collapse' : 'Expand containers'}
+            >
+              {isExpanded ? '▼' : '▶'}
+            </button>
+            <span className="font-medium text-primary-900 text-xs">{i.getValue()}</span>
+          </div>
+        )
+      },
+    }),
     columnHelper.accessor('namespace', { header: 'Namespace', cell: (i) => <span className="text-xs text-gray-500">{i.getValue()}</span> }),
     columnHelper.accessor('status', { header: 'Status', cell: (i) => <StatusBadge status={i.getValue()} /> }),
     columnHelper.accessor('ready', { header: 'Ready', cell: (i) => <span className="text-xs">{i.getValue()}</span> }),
@@ -152,14 +203,38 @@ export function Pods() {
             ))}
           </thead>
           <tbody>
-            {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className={cn('border-t border-primary-50 hover:bg-primary-50/50 transition-colors',
-                ['CrashLoopBackOff', 'Error', 'Failed'].includes(row.original.status) ? 'bg-red-50/30' : '')}>
-                {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-3 py-2">{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
-                ))}
-              </tr>
-            ))}
+            {table.getRowModel().rows.map((row) => {
+              const isExpanded = expandedPod === row.original.name
+              const colSpan = row.getVisibleCells().length
+              return (
+                <>
+                  <tr
+                    key={row.id}
+                    className={cn(
+                      'border-t border-primary-50 hover:bg-primary-50/50 transition-colors',
+                      ['CrashLoopBackOff', 'Error', 'Failed'].includes(row.original.status) ? 'bg-red-50/30' : '',
+                    )}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id} className="px-3 py-2">{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+                    ))}
+                  </tr>
+                  {isExpanded && (
+                    <tr key={`${row.id}-containers`} className="border-t border-primary-50 bg-gray-50/60">
+                      <td colSpan={colSpan} className="px-4 py-2">
+                        <div className="flex flex-wrap items-center gap-x-0 gap-y-1">
+                          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mr-2 shrink-0">Containers:</span>
+                          {row.original.containers && row.original.containers.length > 0
+                            ? row.original.containers.map((c) => <ContainerChip key={c.name} c={c} />)
+                            : <span className="text-[10px] text-gray-400">No container info available</span>
+                          }
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
+              )
+            })}
           </tbody>
         </table>
       </div>

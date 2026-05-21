@@ -12,6 +12,7 @@ import { Events } from '@/pages/Events'
 import { Top } from '@/pages/Top'
 import { Topology } from '@/pages/Topology'
 import { ResourceExplorer } from '@/pages/ResourceExplorer'
+import { Settings } from '@/pages/Settings'
 
 function Placeholder({ title }: { title: string }) {
   return <div className="text-primary-700 font-medium">{title} — coming soon</div>
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="/nodes" element={<Nodes />} />
         <Route path="/namespaces" element={<Namespaces />} />
         <Route path="/explorer" element={<ResourceExplorer />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
     </Routes>
   )

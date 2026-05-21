@@ -1,98 +1,53 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code (claude.ai/code) when operating in this repository.
 
-## What This Is
+## 📌 Memory & Documentation Rules (Strict)
 
-k999s is a local Kubernetes dashboard — a single Go binary that embeds a React frontend and serves it at `http://localhost:8080`. It reads `~/.kube/config` automatically, no external dependencies required to run.
+* **Before Task:** อ่านไฟล์ใน `.notes/` directory นั้นๆ ก่อนเริ่มงานเสมอ
+* **After Task:** สรุปสิ่งที่ทำลงใน `.notes/daily_log.md` ทุกครั้งที่จบงาน
+* **Every Session End:** อัปเดตข้อมูลที่เปลี่ยนไป (DB schema, API, settings, gaps) ใน `.notes/00_INDEX.md` ควบคู่กับ log เสมอ (ไม่มีข้อยกเว้น ไม่ต้องรอ structural change)
+* **Notion Sync:** บันทึกขึ้น Notion ด้วยคำสั่ง: `python3 scripts/sync_notion.py "[Title]" "[Content]"`
 
-## Commands
+## 🛠️ Commands
 
-### Development (hot reload)
-```bash
-make dev          # Go backend :8080 + Vite dev server :5173 in parallel
-```
-Vite proxies `/api` and `/ws` to Go backend, so the frontend at `:5173` talks to Go.
+### Development & Build
+- **Hot Reload:** `make dev` (Go backend `:8080` + Vite dev server `:5173` ควบคู่กัน)
+- **Production Build:** `make build` (คอมไพล์ React -> ฝังลง Go binary -> ได้ไฟล์ `./k999s` ~47MB)
+- **Run Binary:** `./k999s --port 8080 --kubeconfig ~/.kube/config`
+- *⚠️ สำคัญ:* หลังแก้ไข React ต้องรัน `make build` ทุกครั้ง เพราะ binary จะฝัง snapshot ณ เวลาที่ compile เท่านั้น
 
-### Build production binary
-```bash
-make build        # npm run build → go build → ./k999s (~47MB self-contained binary)
-./k999s --port 8080 --kubeconfig ~/.kube/config
-```
-**Important:** After any React source change, run `make build` before running `./k999s` — the binary embeds the build snapshot at compile time.
+### Testing & Lint
+- **All Tests:** `make test` (รันทั้ง Go และ Frontend)
+- **Go Only:** `go test ./...`
+- **Go Package:** `go test ./internal/k8s/... -v`
+- **Go Single Test:** `go test ./internal/k8s/... -run TestDeletePod -v`
+- **Frontend Only:** `cd web && npx vitest run` (*ต้องรันจากโฟลเดอร์ `web/` เท่านั้น เนื่องจาก path alias `@` ถูกคอนฟิกไว้ใน `web/vite.config.ts`*)
+- **Frontend Single File:** `cd web && npx vitest run src/lib/api.test.ts`
+- **TypeScript Check:** `cd web && npx tsc --noEmit`
+- **Linting:** `golangci-lint run`
 
-### Testing
-```bash
-make test                                              # all Go + frontend tests
-go test ./...                                          # Go only
-go test ./internal/k8s/... -v                         # single Go package
-go test ./internal/k8s/... -run TestDeletePod -v      # single Go test
-cd web && npx vitest run                               # frontend only (must run from web/)
-cd web && npx vitest run src/lib/api.test.ts           # single frontend file
-cd web && npx tsc --noEmit                             # TypeScript check only
-```
-Frontend tests **must run from `web/`**, not the project root — the `@` path alias is only configured in `web/vite.config.ts`.
+## 🏗️ Architecture & Project Gotchas
 
-### Lint
-```bash
-golangci-lint run
-```
+### Directory Layout & Build Flow
+- โฟลเดอร์ Output ของ Vite คือ `internal/frontend/dist` (ตั้งค่าผ่าน `build.outDir` ใน `web/vite.config.ts`) **ไม่ใช่** `web/dist`
+- ฝัง Frontend เข้าไปใน Go ด้วยระบบ `go:embed all:dist` ภายใน `internal/frontend/frontend.go`
 
-## Architecture
+### Go Package Breakdown
+- `internal/config`: โหลดสเปกจาก `~/.k999s/config.yaml` และ kubeconfig
+- `internal/k8s`: `client.go` (Read/List) และ `actions.go` (Mutate) Wrapping `kubernetes.Interface`
+- `internal/api`: Gin Router & Handlers (ใน Test คอนฟิก `hub` เป็น `nil` ได้)
+- `internal/ws`: WebSocket hub สำหรับจัดการส่งข้อมูล JSON ผ่าน `Broadcast(type, data)`
 
-### Binary embedding flow
-```
-web/src/ → npm run build → internal/frontend/dist/
-                                    ↓
-                    internal/frontend/frontend.go (go:embed all:dist)
-                                    ↓
-                         cmd/k999s/main.go → ./k999s binary
-```
-The Vite build output directory is `../internal/frontend/dist` (relative to `web/`), **not** `web/dist`. This is set in `web/vite.config.ts` `build.outDir`.
+### React Frontend
+- `src/lib/api.ts`: จัดการ HTTP Fetch ทั้งหมด (`get<T>()` สำหรับอ่าน, `action()` สำหรับแก้ไข)
+- `src/lib/types.ts`: สเปก TypeScript ที่ล้อตาม Go Summary Types
+- `src/hooks/useWebSocket.ts`: Hook สำหรับ Auto-reconnect และ dispatch message
+- **Context Filtering:** ทุก Page ใช้ `useOutletContext` ในการกรอง Namespace และต้องครอบด้วย Null-safe (`?? ''`) เสมอ
 
-### Go package responsibilities
-- `internal/config` — loads `~/.k999s/config.yaml` (AI provider settings) + kubeconfig path
-- `internal/k8s` — `Client` wraps `kubernetes.Interface`; `client.go` = list methods, `actions.go` = mutating operations
-- `internal/api` — gin router + handlers; `NewRouter(k8sClient, webFS, hub)` takes nil hub in tests
-- `internal/ws` — WebSocket hub; `Broadcast(type, data)` sends `{type, data}` JSON to all connected clients
-- `internal/frontend` — only holds `go:embed` declaration
-
-### React frontend
-- `src/lib/api.ts` — all fetch calls; `get<T>()` for reads, `action()` helper for mutations
-- `src/lib/types.ts` — TypeScript mirrors of Go summary types (`PodSummary`, `DeploymentSummary`, etc.)
-- `src/hooks/useWebSocket.ts` — auto-reconnect WebSocket hook; dispatches `{type, data}` messages
-- Pages use `useOutletContext<{ namespace: string } | null>()` for namespace filter — always null-safe with `?? ''`
-- `AppLayout` passes `{ namespace }` to all child pages via `<Outlet context={{ namespace }} />`
-
-### Tailwind v4 quirk
-Custom colors are declared in `src/index.css` with `@theme {}`, **not** in `tailwind.config.ts`. The `tailwind.config.ts` file is unused for theme extension in v4:
-```css
-/* src/index.css */
-@import "tailwindcss";
-@theme {
-  --color-primary-600: #4f46e5;
-  /* ... */
-}
-```
-If Tailwind classes like `bg-primary-600` stop working, add the color here.
-
-### Test patterns
-**Go — K8s client tests** use `fake.NewSimpleClientset(objects...)` + `k8s.NewClientFromKubernetesClient(fakeClient, "")` to avoid a real cluster.
-
-**Go — API handler tests** use:
-```go
-api.NewRouter(client, embed.FS{}, nil)  // nil hub = no /ws route
-```
-
-**React** — mock `@/hooks/useWebSocket` and `@/lib/api` with `vi.mock()`. Mock `window.confirm` for action tests.
-
-## App Config (`~/.k999s/config.yaml`)
-
-```yaml
-ai:
-  provider: ollama        # default; anthropic | openai | openrouter | ollama
-  api_key: ""
-  model: llama3.2
-  base_url: ""            # optional override
-```
-AI Diagnostic feature is disabled when no provider is configured.
+### Tailwind v4 Styling Quirk
+- **ห้ามขยาย Theme ใน `tailwind.config.ts` (ไม่ได้ใช้งานแล้วใน v4)**
+- การทำ Custom colors ต้องประกาศผ่าน `@theme {}` ในไฟล์ `src/index.css` เท่านั้น เช่น:
+  ```css
+  @import "tailwindcss";
+  @theme { --color-primary-600: #4f46e5; }

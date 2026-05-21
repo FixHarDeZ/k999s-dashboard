@@ -1,3 +1,12 @@
+export interface ContainerInfo {
+  name: string
+  type: 'init' | 'sidecar' | 'main'
+  ready: boolean
+  restarts: number
+  state: string
+  reason: string
+}
+
 export interface PodSummary {
   name: string
   namespace: string
@@ -7,6 +16,7 @@ export interface PodSummary {
   age: string
   node: string
   ip: string
+  containers: ContainerInfo[]
 }
 
 export interface DeploymentSummary {
@@ -116,6 +126,13 @@ export interface APIResourceInfo {
   group: string
   version: string
   namespaced: boolean
+}
+
+export interface AISettings {
+  provider: string
+  model: string
+  apiKey: string
+  baseURL: string
 }
 
 export interface CRDPresence {

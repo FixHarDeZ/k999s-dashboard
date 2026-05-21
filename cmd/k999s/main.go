@@ -46,7 +46,7 @@ func main() {
 	}
 
 	hub := ws.NewHub()
-	router := api.NewRouter(k8sClient, frontend.FS, hub, provider)
+	router := api.NewRouter(k8sClient, frontend.FS, hub, provider, cfg)
 	addr := fmt.Sprintf(":%d", *port)
 	url := fmt.Sprintf("http://localhost:%d", *port)
 

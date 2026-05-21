@@ -14,6 +14,11 @@
 #   k999s_v1.2.0_windows_amd64.zip
 #   checksums.txt
 
+# rebuild binary ล่าสุด:
+# cd /Users/peerawat.ujaiyen/MyCode/k999s-dashboard
+# cd web && npm run build && cd .. && make build
+# ./k999s --version  # k999s v0.1.0
+
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
