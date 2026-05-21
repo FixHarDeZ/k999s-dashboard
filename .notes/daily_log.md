@@ -1,5 +1,37 @@
 # Daily Log
 
+## 2026-05-21 — Session End: Batch A UI Polish
+
+### สรุปงาน
+
+**ConfirmModal component** (`web/src/components/ConfirmModal.tsx`)
+- สร้าง shared modal แทน `window.confirm()` — themed, มี backdrop, title, message optional, danger/primary button
+- Pods + Deployments: เปลี่ยน handleDelete/handleRestart เป็น confirmAction state + handleConfirm pattern
+
+**Auto-refresh interval picker**
+- Pods + Deployments: dropdown Off/5s/10s/15s/30s ข้าง RefreshButton
+- useEffect + setInterval + cleanup เมื่อ interval เปลี่ยน
+
+**Log tail lines**
+- Go: `StreamLogs` เพิ่ม `tailLines int64` → `PodLogOptions.TailLines`
+- Handler: parse `?tail=` query param
+- Frontend: `podLogsWsUrl` รับ optional `tail`, `LogViewer` มี dropdown All/100/200/300/400/500
+- พบ hidden call site ใน `diagnostic_context.go` — fixed ส่ง `0` (stream all)
+
+**AI Diagnose บน Overview**
+- เพิ่ม 🔍 button ต่อ unhealthy pod → เปิด DiagnosticPanel
+
+### Commits (5 commits)
+```
+45745b9 feat: replace window.confirm() with ConfirmModal component in Pods and Deployments
+7c73804 chore(test): remove stale window.confirm stub from Pods.test.tsx
+b4a6a02 feat: add auto-refresh interval picker to Pods and Deployments
+a9cf315 feat(logs): add tail lines option to LogViewer (100/200/300/400/500)
+833a4d1 feat(overview): add AI Diagnose button to unhealthy pods
+```
+
+---
+
 ## 2026-05-21 — Session End: v0.3.0 Features (Topology Warning + Top Metrics + YAML Edit)
 
 ### สรุปงาน

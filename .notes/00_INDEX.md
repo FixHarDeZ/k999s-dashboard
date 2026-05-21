@@ -1,6 +1,6 @@
 # k999s Dashboard — Project Index
 
-> Last updated: 2026-05-21 (v0.3.0 features: Topology warning, Top rolling metrics, YAML edit, StatefulSets page)
+> Last updated: 2026-05-21 (Batch A: ConfirmModal, auto-refresh picker, log tail lines, AI Diagnose on Overview)
 
 ## Overview
 
@@ -129,7 +129,21 @@ ai:
 | Port-forward | Not implemented |
 | WebSocket live pod updates | Hub exists but informers not wired (manual refresh only) |
 | Rollback deployment | Not implemented |
-| Cordon/Drain nodes | Not implemented |
+| Cordon/Drain nodes | Not implemented (planned Batch B) |
+| Ingress page | Not implemented (planned Batch B) |
+| Helm menu | Not implemented (planned Batch C) |
+| Namespace drill-down | Not implemented (planned Batch D) |
+
+## Batch A UI Polish (2026-05-21, pushed to main)
+
+| เรื่อง | รายละเอียด |
+|---|---|
+| **ConfirmModal** | `web/src/components/ConfirmModal.tsx` — shared styled modal แทน `window.confirm()` ใน Pods + Deployments |
+| **Auto-refresh picker** | Dropdown Off/5s/10s/15s/30s ใน Pods + Deployments |
+| **Log tail lines** | Go `StreamLogs` + `?tail=` handler + LogViewer dropdown All/100/200/300/400/500 |
+| **AI Diagnose on Overview** | 🔍 button ต่อ unhealthy pod → เปิด DiagnosticPanel |
+
+---
 
 ## Changes in v0.1.0 Session (2026-05-21)
 
