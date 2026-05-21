@@ -1,6 +1,54 @@
+# ── Build output ──────────────────────────────────────────────────────────────
 /k999s
+/k999s.exe
 /dist/
-web/node_modules/
 web/dist/
-.superpowers/
+internal/frontend/dist/
+
+# ── Dependencies ───────────────────────────────────────────────────────────────
+node_modules/
+web/node_modules/
+
+# ── Secrets & credentials (never commit these) ────────────────────────────────
+# App config contains AI API keys — keep it in ~/.k999s/config.yaml (outside repo)
+config.yaml
+config.yml
+.k999s/
+
+# Environment variable files
+.env
+.env.*
 *.env
+.env.local
+.env.production
+.env.staging
+
+# Kubeconfig files (if accidentally copied into the project)
+kubeconfig
+kubeconfig.yaml
+*kubeconfig*
+*.kubeconfig
+
+# TLS / PKI material
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+*.jks
+
+# K8s secret manifests that may contain base64-encoded credentials
+secrets.yaml
+secrets.yml
+
+# ── OS & editor noise ──────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ── Tooling ────────────────────────────────────────────────────────────────────
+.superpowers/

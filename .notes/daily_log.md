@@ -1,5 +1,44 @@
 # Daily Log
 
+## 2026-05-21 — Feature: AI Diagnostic deep analysis
+
+### สรุปงาน
+เปลี่ยน AI Diagnostic จาก generic advice เป็น deep analysis จากข้อมูลจริงของ cluster
+
+**Go — `internal/k8s/diagnostic_context.go` (ไฟล์ใหม่)**
+- `GetPodDiagnosticContext()` รวบรวมข้อมูลจริงทั้งหมด:
+  - Pod phase, conditions ที่ fail, reason/message
+  - Container statuses: state, exit code, reason, restart count (ทั้ง current + last terminated)
+  - Init container statuses
+  - Resource requests/limits (สำหรับ OOM detection)
+  - Env var names (ไม่เปิดเผย values)
+  - Current logs + previous logs (ก่อน crash) แยกต่อ container
+  - Pod events โดยตรงผ่าน FieldSelector (แม่นยำกว่าเดิม)
+
+**Go — `internal/diagnostic/provider.go`**
+- เพิ่ม field ใน `DiagnosticInput`: `PodDetails`, `CurrentLogs`, `PreviousLogs`
+- System prompt ใหม่: บังคับ AI วิเคราะห์จากข้อมูลที่มี ห้ามแนะนำ kubectl commands, ต้อง cite exit code/reason จริง
+- Format ผลลัพธ์: 🔍 Root Cause + 🔧 Fix Steps + ⚠️ Key Observations
+
+**Go — `internal/api/handlers.go`**
+- `handleDiagnose`: เปลี่ยนจาก manual log collection → `GetPodDiagnosticContext()`
+- ส่ง "⏳ Collecting..." message ให้ user รู้ว่า collecting data อยู่
+
+---
+
+## 2026-05-21 — Docs: README.md bilingual (EN/TH)
+
+เขียน README.md ใหม่ทั้งหมด:
+- Toggle ENG / ภาษาไทย ด้วย anchor links + `<details>` collapsible
+- Prerequisites (cluster, kubeconfig, Go/Node สำหรับ build, AI providers)
+- Installation (binary download + build from source)
+- Running / CLI flags
+- AI Diagnostic setup (YAML examples สำหรับ 4 providers)
+- Usage guide (Pods, Topology, Resource Explorer, AI)
+- Dev section (make dev, test, lint)
+
+---
+
 ## 2026-05-21 — Feature: Settings page — AI Diagnostic config
 
 ### สรุปงาน

@@ -478,34 +478,23 @@ func (r *Router) handleDiagnose(c *gin.Context) {
 		}
 	}()
 
-	// Collect logs (last 200 lines)
-	var logLines []string
-	stream, err := r.k8s.StreamLogs(ctx, ns, name, "", false, false)
-	if err == nil && stream != nil {
-		scanner := bufio.NewScanner(stream)
-		for scanner.Scan() {
-			logLines = append(logLines, scanner.Text())
-		}
-		stream.Close()
-	}
-	if len(logLines) > 200 {
-		logLines = logLines[len(logLines)-200:]
-	}
+	// Notify client that data collection has started
+	_ = conn.WriteMessage(websocket.TextMessage, []byte("⏳ Collecting pod diagnostics (status, logs, events)...\n\n"))
 
-	// Collect events for this pod
-	events, _ := r.k8s.ListEvents(ctx, ns)
-	var eventLines []string
-	for _, e := range events {
-		if strings.Contains(e.Object, name) {
-			eventLines = append(eventLines, fmt.Sprintf("[%s] %s: %s", e.Type, e.Reason, e.Message))
-		}
+	// Collect rich pod context: container states, exit codes, previous logs, events
+	podCtx, err := r.k8s.GetPodDiagnosticContext(ctx, ns, name)
+	if err != nil {
+		_ = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error collecting pod data: %v\n", err)))
+		return
 	}
 
 	input := diagnostic.DiagnosticInput{
-		PodName:   name,
-		Namespace: ns,
-		Logs:      strings.Join(logLines, "\n"),
-		Events:    strings.Join(eventLines, "\n"),
+		PodName:      name,
+		Namespace:    ns,
+		PodDetails:   podCtx.PodDetails,
+		CurrentLogs:  podCtx.CurrentLogs,
+		PreviousLogs: podCtx.PreviousLogs,
+		Events:       podCtx.Events,
 	}
 
 	ch, err := diag.Diagnose(ctx, input)
