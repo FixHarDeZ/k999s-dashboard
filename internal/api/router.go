@@ -38,6 +38,7 @@ func NewRouter(k8sClient *k8s.Client, webFS embed.FS, hub *ws.Hub, diag diagnost
 	v1.GET("/namespaces", r.handleListNamespaces)
 	v1.GET("/contexts", r.handleListContexts)
 	v1.GET("/deployments", r.handleListDeployments)
+	v1.GET("/statefulsets", r.handleListStatefulSets)
 	v1.GET("/services", r.handleListServices)
 	v1.GET("/nodes", r.handleListNodes)
 	v1.GET("/namespace-summaries", r.handleListNamespaceSummaries)

@@ -12,6 +12,7 @@ import (
 	"github.com/k999s/dashboard/internal/k8s"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -24,6 +25,10 @@ func newTestRouter() *api.Router {
 			Status:     corev1.PodStatus{Phase: corev1.PodRunning},
 		},
 		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}},
+		&appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{Name: "sts-1", Namespace: "default"},
+			Status:     appsv1.StatefulSetStatus{ReadyReplicas: 1, Replicas: 1},
+		},
 	)
 	client := k8s.NewClientFromKubernetesClient(fakeK8s, "test-context")
 	return api.NewRouter(client, embed.FS{}, nil, nil, &config.Config{})
@@ -112,4 +117,19 @@ func TestGetAPIResources_ReturnsOK(t *testing.T) {
 	router.ServeHTTP(w, req)
 	// fake discovery returns empty or some resources — just check 200
 	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestGetStatefulSets_ReturnsList(t *testing.T) {
+	router := newTestRouter()
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/api/v1/statefulsets?namespace=default", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp struct {
+		Items []k8s.StatefulSetSummary `json:"items"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Len(t, resp.Items, 1)
+	assert.Equal(t, "sts-1", resp.Items[0].Name)
 }
