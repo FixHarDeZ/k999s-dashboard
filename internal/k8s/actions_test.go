@@ -40,3 +40,62 @@ func TestScaleDeployment_UpdatesReplicas(t *testing.T) {
 	d, _ := fakeClient.AppsV1().Deployments("default").Get(context.Background(), "api", metav1.GetOptions{})
 	assert.Equal(t, int32(5), *d.Spec.Replicas)
 }
+
+func TestCordonNode_SetsUnschedulable(t *testing.T) {
+	fakeClient := fake.NewSimpleClientset(
+		&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node-1"}},
+	)
+	client := k8s.NewClientFromKubernetesClient(fakeClient, "")
+	err := client.CordonNode(context.Background(), "node-1", true)
+	require.NoError(t, err)
+	node, _ := fakeClient.CoreV1().Nodes().Get(context.Background(), "node-1", metav1.GetOptions{})
+	assert.True(t, node.Spec.Unschedulable)
+}
+
+func TestUncordonNode_ClearsUnschedulable(t *testing.T) {
+	fakeClient := fake.NewSimpleClientset(
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{Name: "node-1"},
+			Spec:       corev1.NodeSpec{Unschedulable: true},
+		},
+	)
+	client := k8s.NewClientFromKubernetesClient(fakeClient, "")
+	err := client.CordonNode(context.Background(), "node-1", false)
+	require.NoError(t, err)
+	node, _ := fakeClient.CoreV1().Nodes().Get(context.Background(), "node-1", metav1.GetOptions{})
+	assert.False(t, node.Spec.Unschedulable)
+}
+
+func TestDrainNode_CordonsAndDeletesNonDaemonSetPods(t *testing.T) {
+	daemonPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "ds-pod", Namespace: "default",
+			OwnerReferences: []metav1.OwnerReference{{Kind: "DaemonSet", Name: "ds-1"}},
+		},
+		Spec: corev1.PodSpec{NodeName: "node-1"},
+	}
+	normalPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "normal-pod", Namespace: "default"},
+		Spec:       corev1.PodSpec{NodeName: "node-1"},
+	}
+	fakeClient := fake.NewSimpleClientset(
+		&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node-1"}},
+		daemonPod,
+		normalPod,
+	)
+	client := k8s.NewClientFromKubernetesClient(fakeClient, "")
+	err := client.DrainNode(context.Background(), "node-1")
+	require.NoError(t, err)
+
+	// Node cordoned
+	node, _ := fakeClient.CoreV1().Nodes().Get(context.Background(), "node-1", metav1.GetOptions{})
+	assert.True(t, node.Spec.Unschedulable)
+
+	// DaemonSet pod still exists
+	_, err = fakeClient.CoreV1().Pods("default").Get(context.Background(), "ds-pod", metav1.GetOptions{})
+	assert.NoError(t, err, "DaemonSet pod should NOT be deleted")
+
+	// Normal pod deleted
+	_, err = fakeClient.CoreV1().Pods("default").Get(context.Background(), "normal-pod", metav1.GetOptions{})
+	assert.Error(t, err, "normal pod should be deleted")
+}

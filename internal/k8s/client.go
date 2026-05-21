@@ -362,11 +362,12 @@ func (c *Client) ListNodes(ctx context.Context) ([]NodeSummary, error) {
 			rolesStr = "<none>"
 		}
 		out = append(out, NodeSummary{
-			Name:    n.Name,
-			Status:  status,
-			Roles:   rolesStr,
-			Age:     formatAge(n.CreationTimestamp.Time),
-			Version: n.Status.NodeInfo.KubeletVersion,
+			Name:        n.Name,
+			Status:      status,
+			Roles:       rolesStr,
+			Age:         formatAge(n.CreationTimestamp.Time),
+			Version:     n.Status.NodeInfo.KubeletVersion,
+			Schedulable: !n.Spec.Unschedulable,
 		})
 	}
 	return out, nil

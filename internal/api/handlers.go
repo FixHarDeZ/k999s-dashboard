@@ -127,6 +127,33 @@ func (r *Router) handleListIngresses(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"items": items})
 }
 
+func (r *Router) handleCordonNode(c *gin.Context) {
+	name := c.Param("name")
+	if err := r.k8s.CordonNode(c.Request.Context(), name, true); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (r *Router) handleUncordonNode(c *gin.Context) {
+	name := c.Param("name")
+	if err := r.k8s.CordonNode(c.Request.Context(), name, false); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (r *Router) handleDrainNode(c *gin.Context) {
+	name := c.Param("name")
+	if err := r.k8s.DrainNode(c.Request.Context(), name); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
 func (r *Router) handleDeletePod(c *gin.Context) {
 	ns, name := c.Param("namespace"), c.Param("name")
 	if err := r.k8s.DeletePod(c.Request.Context(), ns, name); err != nil {
