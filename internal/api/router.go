@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/k999s/dashboard/internal/config"
 	"github.com/k999s/dashboard/internal/diagnostic"
+	helmclient "github.com/k999s/dashboard/internal/helm"
 	"github.com/k999s/dashboard/internal/k8s"
 	"github.com/k999s/dashboard/internal/ws"
 )
@@ -20,6 +21,7 @@ type Router struct {
 	hub        *ws.Hub
 	diagnostic diagnostic.Provider
 	cfg        *config.Config
+	helm       *helmclient.Client
 	mu         sync.RWMutex
 }
 
@@ -29,7 +31,14 @@ var upgrader = websocket.Upgrader{
 
 func NewRouter(k8sClient *k8s.Client, webFS embed.FS, hub *ws.Hub, diag diagnostic.Provider, cfg *config.Config) *Router {
 	gin.SetMode(gin.ReleaseMode)
-	r := &Router{engine: gin.New(), k8s: k8sClient, hub: hub, diagnostic: diag, cfg: cfg}
+	r := &Router{
+		engine:     gin.New(),
+		k8s:        k8sClient,
+		hub:        hub,
+		diagnostic: diag,
+		cfg:        cfg,
+		helm:       helmclient.NewClient(cfg.KubeconfigPath, cfg.CurrentContext),
+	}
 	r.engine.Use(gin.Recovery())
 	r.engine.Use(corsMiddleware())
 
@@ -66,6 +75,8 @@ func NewRouter(k8sClient *k8s.Client, webFS embed.FS, hub *ws.Hub, diag diagnost
 	v1.DELETE("/deployments/:namespace/:name", r.handleDeleteDeployment)
 	v1.GET("/settings", r.handleGetSettings)
 	v1.PUT("/settings", r.handleSaveSettings)
+	v1.GET("/helm/releases", r.handleListHelmReleases)
+	v1.DELETE("/helm/releases/:namespace/:name", r.handleUninstallHelmRelease)
 
 	r.engine.GET("/ws/pods/:namespace/:name/logs", r.handlePodLogs)
 	r.engine.GET("/ws/pods/:namespace/:name/exec", r.handlePodExec)

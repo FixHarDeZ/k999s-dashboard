@@ -574,3 +574,23 @@ func (r *Router) handleDiagnose(c *gin.Context) {
 		))
 	}
 }
+
+func (r *Router) handleListHelmReleases(c *gin.Context) {
+	namespace := c.Query("namespace")
+	items, err := r.helm.ListReleases(namespace)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": items})
+}
+
+func (r *Router) handleUninstallHelmRelease(c *gin.Context) {
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+	if err := r.helm.UninstallRelease(namespace, name); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
