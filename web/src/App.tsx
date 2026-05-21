@@ -19,6 +19,7 @@ import { Canary } from '@/pages/Canary'
 import { StatefulSets } from '@/pages/StatefulSets'
 import { Ingress } from '@/pages/Ingress'
 import { Helm } from '@/pages/Helm'
+import { NamespaceDetail } from '@/pages/NamespaceDetail'
 
 
 export default function App() {
@@ -39,6 +40,7 @@ export default function App() {
         <Route path="/secrets" element={<Secrets />} />
         <Route path="/nodes" element={<Nodes />} />
         <Route path="/namespaces" element={<Namespaces />} />
+        <Route path="/namespaces/:name" element={<NamespaceDetail />} />
         <Route path="/explorer" element={<ResourceExplorer />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/istio" element={<Istio />} />
