@@ -1,4 +1,5 @@
 import { RefreshButton } from '@/components/RefreshButton'
+import { DiagnosticPanel } from '@/components/DiagnosticPanel'
 import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchNodes, fetchPods, fetchEvents, fetchNamespaceSummaries } from '@/lib/api'
@@ -25,6 +26,7 @@ export function Overview() {
   const [pods, setPods] = useState<PodSummary[]>([])
   const [events, setEvents] = useState<EventSummary[]>([])
   const [nsCount, setNsCount] = useState(0)
+  const [diagTarget, setDiagTarget] = useState<{ namespace: string; name: string } | null>(null)
 
   const load = useCallback(() => {
     fetchNodes().then(setNodes).catch(console.error)
@@ -79,9 +81,18 @@ export function Overview() {
                     <div style={{ fontSize: 11, fontWeight: 600, color: '#1e1b4b' }}>{pod.name}</div>
                     <div style={{ fontSize: 10, color: '#6b7280' }}>{pod.namespace}</div>
                   </div>
-                  <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded', 'bg-red-50 text-red-600')}>
-                    {pod.status}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded', 'bg-red-50 text-red-600')}>
+                      {pod.status}
+                    </span>
+                    <button
+                      onClick={() => setDiagTarget({ namespace: pod.namespace, name: pod.name })}
+                      style={{ background: '#f5f3ff', border: 'none', borderRadius: 4, padding: '2px 6px', fontSize: 10, color: '#7c3aed', cursor: 'pointer', fontWeight: 600 }}
+                      title="AI Diagnose"
+                    >
+                      🔍
+                    </button>
+                  </div>
                 </div>
               ))
             )}
@@ -128,6 +139,13 @@ export function Overview() {
         </div>
 
       </div>
+      {diagTarget && (
+        <DiagnosticPanel
+          namespace={diagTarget.namespace}
+          podName={diagTarget.name}
+          onClose={() => setDiagTarget(null)}
+        />
+      )}
     </div>
   )
 }
