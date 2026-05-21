@@ -41,6 +41,7 @@ export function ResourceExplorer() {
   const [loadingItems, setLoadingItems] = useState(false)
   const [loadingYaml, setLoadingYaml] = useState(false)
   const [filter, setFilter] = useState('')
+  const [itemsError, setItemsError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchAPIResources().then(setAllResources).catch(console.error)
@@ -51,11 +52,13 @@ export function ResourceExplorer() {
     setItems([])
     setSelectedItem(null)
     setYaml('')
+    setItemsError(null)
     setLoadingItems(true)
     try {
       const raw = await fetchResourceList(res.group, res.version, res.name, namespace)
       setItems(raw)
-    } catch {
+    } catch (e) {
+      setItemsError((e as Error).message)
       setItems([])
     } finally {
       setLoadingItems(false)
@@ -153,10 +156,15 @@ export function ResourceExplorer() {
             <>
               <div style={{ padding: '8px 12px', background: '#f0f4ff', borderBottom: '1px solid #e0e7ff', fontSize: 11, fontWeight: 600, color: '#4338ca' }}>
                 {selected.kind}
-                <span style={{ fontSize: 9, color: '#818cf8', marginLeft: 6 }}>
-                  {loadingItems ? 'loading...' : `${items.length} items`}
+                <span style={{ fontSize: 9, color: itemsError ? '#ef4444' : '#818cf8', marginLeft: 6 }}>
+                  {loadingItems ? 'loading...' : itemsError ? 'error' : `${items.length} items`}
                 </span>
               </div>
+              {itemsError && (
+                <div style={{ padding: '10px 12px', background: '#fef2f2', borderBottom: '1px solid #fecaca', fontSize: 10, color: '#dc2626', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                  {itemsError}
+                </div>
+              )}
               <div style={{ flex: 1, overflowY: 'auto' }}>
                 {items.map((item) => {
                   const itemName = extractName(item)
