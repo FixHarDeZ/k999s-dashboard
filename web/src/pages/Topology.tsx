@@ -228,12 +228,21 @@ function NodeDetail({
 
 export function Topology() {
   const ctx = useOutletContext<{ namespace: string } | null>()
-  const namespace = ctx?.namespace || 'default'
+  const namespace = ctx?.namespace ?? ''
   const [graph, setGraph] = useState<TopologyGraph | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedNode, setSelectedNode] = useState<TopologyGraph['nodes'][0] | null>(null)
   const [diagTarget, setDiagTarget] = useState<{ namespace: string; name: string } | null>(null)
+
+  const isAllNamespaces = namespace === ''
+  const [confirmed, setConfirmed] = useState(false)
+  const [cancelled, setCancelled] = useState(false)
+
+  useEffect(() => {
+    setConfirmed(false)
+    setCancelled(false)
+  }, [namespace])
 
   const load = useCallback(() => {
     setLoading(true)
@@ -248,7 +257,10 @@ export function Topology() {
       .finally(() => setLoading(false))
   }, [namespace])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    if (isAllNamespaces && !confirmed) return
+    load()
+  }, [load, isAllNamespaces, confirmed])
 
   const { nodes: initialNodes, edges: initialEdges } = useMemo(() => {
     if (!graph) return { nodes: [], edges: [] }
@@ -274,6 +286,46 @@ export function Topology() {
     }
   }, [graph, setNodes, setEdges])
 
+  if (isAllNamespaces && cancelled) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
+        <p className="text-sm font-medium text-primary-600">เลือก namespace ก่อนใช้ Topology</p>
+        <p className="text-xs text-primary-400">ใช้ dropdown ด้านบนเพื่อเลือก namespace</p>
+      </div>
+    )
+  }
+
+  if (isAllNamespaces && !confirmed) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="bg-white border border-yellow-200 rounded-xl shadow-xl p-6 w-80">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-2xl">⚠️</span>
+            <h3 className="font-bold text-sm text-primary-900">All Namespaces — ข้อมูลอาจเยอะมาก</h3>
+          </div>
+          <p className="text-xs text-gray-600 mb-4">
+            การโหลด topology ทุก namespace พร้อมกันอาจทำให้ graph แสดงผลช้าหรือ layout ซับซ้อนจนอ่านยาก
+            แนะนำให้เลือก namespace เฉพาะก่อน
+          </p>
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => setCancelled(true)}
+              className="text-xs px-3 py-1.5 rounded border border-gray-200 text-gray-600 hover:bg-gray-50"
+            >
+              ยกเลิก
+            </button>
+            <button
+              onClick={() => setConfirmed(true)}
+              className="text-xs px-3 py-1.5 rounded bg-yellow-500 text-white hover:bg-yellow-600"
+            >
+              โหลดทั้งหมด
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div style={{ height: 'calc(100vh - 100px)', position: 'relative' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -281,7 +333,7 @@ export function Topology() {
           <h1 className="text-base font-bold text-primary-900">Topology</h1>
           <p className="text-[11px] text-primary-500">
             {graph ? `${graph.nodes.length} resources · ${graph.edges.length} connections` : 'Loading...'}
-            {' · namespace: '}{namespace || 'default'}
+            {' · namespace: '}{namespace || 'all namespaces'}
           </p>
         </div>
         <RefreshButton onRefresh={load} />
