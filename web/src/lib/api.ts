@@ -137,6 +137,18 @@ export async function fetchResourceGet(
   return JSON.stringify(json, null, 2)
 }
 
+export async function applyResource(
+  group: string, version: string, resource: string, namespace: string, name: string,
+  data: unknown
+): Promise<void> {
+  const res = await fetch('/api/v1/resource-apply', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ group, version, resource, namespace, name, data }),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`)
+}
+
 /** Returns a WebSocket URL for AI diagnostic streaming */
 export function diagnosticWsUrl(namespace: string, name: string): string {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'

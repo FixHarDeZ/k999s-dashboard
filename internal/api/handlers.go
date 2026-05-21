@@ -3,6 +3,7 @@ package api
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -360,6 +361,27 @@ func (r *Router) handleSwitchContext(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"context": body.Context})
+}
+
+func (r *Router) handleResourceApply(c *gin.Context) {
+	var body struct {
+		Group     string         `json:"group"`
+		Version   string         `json:"version"`
+		Resource  string         `json:"resource"`
+		Namespace string         `json:"namespace"`
+		Name      string         `json:"name"`
+		Data      map[string]any `json:"data"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	data, _ := json.Marshal(body.Data)
+	if err := r.k8s.ApplyResourceRaw(c.Request.Context(), body.Group, body.Version, body.Resource, body.Namespace, body.Name, data); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
 }
 
 func (r *Router) handleDetectedCRDs(c *gin.Context) {

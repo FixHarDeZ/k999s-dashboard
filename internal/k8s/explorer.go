@@ -84,3 +84,35 @@ func (c *Client) GetResourceRaw(ctx context.Context, group, version, resource, n
 	}
 	return json.MarshalIndent(obj.Object, "", "  ")
 }
+
+// ApplyResourceRaw updates a resource using the provided JSON data.
+// The resourceVersion from the server is always preserved to satisfy optimistic concurrency.
+func (c *Client) ApplyResourceRaw(ctx context.Context, group, version, resource, namespace, name string, data []byte) error {
+	if c.restConfig == nil {
+		return fmt.Errorf("dynamic client not available: no REST config")
+	}
+	var objMap map[string]any
+	if err := json.Unmarshal(data, &objMap); err != nil {
+		return fmt.Errorf("invalid JSON: %w", err)
+	}
+	dc, err := dynamic.NewForConfig(c.restConfig)
+	if err != nil {
+		return err
+	}
+	gvr := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
+	// Fetch current resourceVersion (required by K8s optimistic concurrency)
+	existing, err := dc.Resource(gvr).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("get existing resource: %w", err)
+	}
+	if meta, ok := existing.Object["metadata"].(map[string]any); ok {
+		if rv, ok := meta["resourceVersion"]; ok {
+			if objMeta, ok := objMap["metadata"].(map[string]any); ok {
+				objMeta["resourceVersion"] = rv
+			}
+		}
+	}
+	existing.Object = objMap
+	_, err = dc.Resource(gvr).Namespace(namespace).Update(ctx, existing, metav1.UpdateOptions{})
+	return err
+}

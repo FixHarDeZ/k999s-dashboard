@@ -1,3 +1,4 @@
+import { RefreshButton } from '@/components/RefreshButton'
 import { useEffect, useState, useCallback } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import {
@@ -99,7 +100,7 @@ export function Deployments() {
           <p className="text-[11px] text-primary-500">{items.length} deployments</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={load} className="text-xs text-primary-600 hover:bg-primary-50 px-2 py-1 rounded border border-primary-200">↻ Refresh</button>
+          <RefreshButton onRefresh={load} />
           <input
             placeholder="Filter..."
             value={globalFilter}

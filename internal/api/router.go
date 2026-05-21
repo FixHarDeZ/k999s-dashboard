@@ -47,6 +47,7 @@ func NewRouter(k8sClient *k8s.Client, webFS embed.FS, hub *ws.Hub, diag diagnost
 	v1.GET("/api-resources", r.handleAPIResources)
 	v1.GET("/resource-list", r.handleResourceList)
 	v1.GET("/resource-get", r.handleResourceGet)
+	v1.PUT("/resource-apply", r.handleResourceApply)
 	v1.GET("/detected-crds", r.handleDetectedCRDs)
 	v1.POST("/contexts/switch", r.handleSwitchContext)
 	v1.DELETE("/pods/:namespace/:name", r.handleDeletePod)

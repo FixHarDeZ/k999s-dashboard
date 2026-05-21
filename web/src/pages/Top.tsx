@@ -1,3 +1,4 @@
+import { RefreshButton } from '@/components/RefreshButton'
 import { useEffect, useState, useCallback } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { createColumnHelper, flexRender, getCoreRowModel, getSortedRowModel, useReactTable, type SortingState } from '@tanstack/react-table'
@@ -92,7 +93,7 @@ export function Top() {
           <h1 className="text-base font-bold text-primary-900">Top</h1>
           <p className="text-[11px] text-primary-500">Auto-refreshes every 15s</p>
         </div>
-        <button onClick={load} className="text-xs text-primary-600 hover:bg-primary-50 px-2 py-1 rounded border border-primary-200">↻ Refresh</button>
+        <RefreshButton onRefresh={load} />
       </div>
 
       {nodeMetrics.length > 0 && (

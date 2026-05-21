@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { fetchAPIResources, fetchResourceList, fetchResourceGet } from '@/lib/api'
+import yaml from 'js-yaml'
+import { fetchAPIResources, fetchResourceList, fetchResourceGet, applyResource } from '@/lib/api'
 import type { APIResourceInfo } from '@/lib/types'
 
 function extractName(item: Record<string, unknown>): string {
@@ -37,7 +38,12 @@ export function ResourceExplorer() {
   const [selected, setSelected] = useState<APIResourceInfo | null>(null)
   const [items, setItems] = useState<Record<string, unknown>[]>([])
   const [selectedItem, setSelectedItem] = useState<string | null>(null)
-  const [yaml, setYaml] = useState<string>('')
+  const [rawJson, setRawJson] = useState<string>('')        // raw JSON from backend
+  const [editContent, setEditContent] = useState<string>('') // editable YAML in editor
+  const [editMode, setEditMode] = useState(false)
+  const [applying, setApplying] = useState(false)
+  const [applyError, setApplyError] = useState<string | null>(null)
+  const [applySuccess, setApplySuccess] = useState(false)
   const [loadingItems, setLoadingItems] = useState(false)
   const [loadingYaml, setLoadingYaml] = useState(false)
   const [filter, setFilter] = useState('')
@@ -51,7 +57,8 @@ export function ResourceExplorer() {
     setSelected(res)
     setItems([])
     setSelectedItem(null)
-    setYaml('')
+    setRawJson('')
+    setEditMode(false)
     setItemsError(null)
     setLoadingItems(true)
     try {
@@ -68,20 +75,62 @@ export function ResourceExplorer() {
   const handleGetYaml = useCallback(async (itemName: string) => {
     if (!selected) return
     setSelectedItem(itemName)
-    setYaml('')
+    setRawJson('')
+    setEditMode(false)
+    setApplyError(null)
+    setApplySuccess(false)
     setLoadingYaml(true)
     try {
-      const result = await fetchResourceGet(selected.group, selected.version, selected.name, namespace, itemName)
-      setYaml(result)
+      const jsonStr = await fetchResourceGet(selected.group, selected.version, selected.name, namespace, itemName)
+      setRawJson(jsonStr)
     } catch (e) {
-      setYaml(`Error: ${(e as Error).message}`)
+      setRawJson(`// Error: ${(e as Error).message}`)
     } finally {
       setLoadingYaml(false)
     }
   }, [selected, namespace])
 
+  // Convert JSON to YAML for display/editing
+  const yamlContent = (() => {
+    if (!rawJson || rawJson.startsWith('// Error')) return rawJson
+    try { return yaml.dump(JSON.parse(rawJson), { indent: 2, lineWidth: -1 }) }
+    catch { return rawJson }
+  })()
+
+  const handleEdit = () => {
+    setEditContent(yamlContent)
+    setEditMode(true)
+    setApplyError(null)
+    setApplySuccess(false)
+  }
+
+  const handleCancelEdit = () => {
+    setEditMode(false)
+    setApplyError(null)
+  }
+
+  const handleApply = async () => {
+    if (!selected || !selectedItem) return
+    setApplying(true)
+    setApplyError(null)
+    setApplySuccess(false)
+    try {
+      const parsed = yaml.load(editContent)
+      await applyResource(selected.group, selected.version, selected.name, namespace, selectedItem, parsed)
+      setApplySuccess(true)
+      setEditMode(false)
+      // Refresh the resource view
+      const jsonStr = await fetchResourceGet(selected.group, selected.version, selected.name, namespace, selectedItem)
+      setRawJson(jsonStr)
+    } catch (e) {
+      setApplyError((e as Error).message)
+    } finally {
+      setApplying(false)
+    }
+  }
+
   const handleCopy = () => {
-    navigator.clipboard.writeText(yaml).catch(console.error)
+    navigator.clipboard.writeText(yamlContent).catch(console.error)
   }
 
   const grouped = groupResources(allResources)
@@ -192,7 +241,7 @@ export function ResourceExplorer() {
           )}
         </div>
 
-        {/* Right: YAML/JSON viewer */}
+        {/* Right: YAML viewer + editor */}
         <div style={{ flex: 1, border: '1px solid #e0e7ff', borderRadius: 10, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {!selectedItem ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#9ca3af', fontSize: 12 }}>
@@ -200,23 +249,74 @@ export function ResourceExplorer() {
             </div>
           ) : (
             <>
-              <div style={{ padding: '6px 12px', background: '#f0f4ff', borderBottom: '1px solid #e0e7ff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              {/* Header */}
+              <div style={{ padding: '6px 12px', background: '#f0f4ff', borderBottom: '1px solid #e0e7ff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                 <span style={{ fontSize: 11, fontWeight: 600, color: '#4338ca', fontFamily: 'monospace' }}>
                   {selected?.kind}/{selectedItem}
+                  {editMode && <span style={{ color: '#f59e0b', marginLeft: 6 }}>● editing</span>}
                 </span>
-                <button onClick={handleCopy}
-                  style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, border: '1px solid #c7d2fe', background: '#fff', color: '#4338ca', cursor: 'pointer' }}>
-                  📋 Copy
-                </button>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {!editMode ? (
+                    <>
+                      <button onClick={handleCopy}
+                        style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, border: '1px solid #c7d2fe', background: '#fff', color: '#4338ca', cursor: 'pointer' }}>
+                        📋 Copy
+                      </button>
+                      <button onClick={handleEdit}
+                        style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, border: '1px solid #6366f1', background: '#6366f1', color: '#fff', cursor: 'pointer' }}>
+                        ✏️ Edit
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={handleCancelEdit}
+                        style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', cursor: 'pointer' }}>
+                        Cancel
+                      </button>
+                      <button onClick={handleApply} disabled={applying}
+                        style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, border: 'none', background: applying ? '#a5b4fc' : '#4f46e5', color: '#fff', cursor: applying ? 'not-allowed' : 'pointer' }}>
+                        {applying ? 'Applying...' : '✓ Apply'}
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-              <pre style={{
-                flex: 1, overflowY: 'auto', margin: 0, padding: 12,
-                background: '#0f0e1a', color: '#c7d2fe',
-                fontFamily: '"Fira Code", monospace', fontSize: 11, lineHeight: 1.6,
-                whiteSpace: 'pre-wrap', wordBreak: 'break-all',
-              }}>
-                {loadingYaml ? 'Loading...' : yaml}
-              </pre>
+
+              {/* Feedback bar */}
+              {applySuccess && (
+                <div style={{ padding: '6px 12px', background: '#f0fdf4', borderBottom: '1px solid #bbf7d0', fontSize: 10, color: '#16a34a' }}>
+                  ✓ Applied successfully
+                </div>
+              )}
+              {applyError && (
+                <div style={{ padding: '6px 12px', background: '#fef2f2', borderBottom: '1px solid #fecaca', fontSize: 10, color: '#dc2626', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                  ✗ {applyError}
+                </div>
+              )}
+
+              {/* Content */}
+              {editMode ? (
+                <textarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  spellCheck={false}
+                  style={{
+                    flex: 1, margin: 0, padding: 12, resize: 'none',
+                    background: '#0f0e1a', color: '#c7d2fe', border: 'none', outline: 'none',
+                    fontFamily: '"Fira Code", monospace', fontSize: 11, lineHeight: 1.6,
+                    whiteSpace: 'pre',
+                  }}
+                />
+              ) : (
+                <pre style={{
+                  flex: 1, overflowY: 'auto', margin: 0, padding: 12,
+                  background: '#0f0e1a', color: '#c7d2fe',
+                  fontFamily: '"Fira Code", monospace', fontSize: 11, lineHeight: 1.6,
+                  whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+                }}>
+                  {loadingYaml ? 'Loading...' : yamlContent}
+                </pre>
+              )}
             </>
           )}
         </div>

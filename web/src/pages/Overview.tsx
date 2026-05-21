@@ -1,3 +1,4 @@
+import { RefreshButton } from '@/components/RefreshButton'
 import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchNodes, fetchPods, fetchEvents, fetchNamespaceSummaries } from '@/lib/api'
@@ -44,7 +45,7 @@ export function Overview() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-base font-bold text-primary-900">Cluster Overview</h1>
-        <button onClick={load} className="text-xs text-primary-600 hover:bg-primary-50 px-2 py-1 rounded border border-primary-200">↻ Refresh</button>
+        <RefreshButton onRefresh={load} />
       </div>
 
       {/* Stats row */}
