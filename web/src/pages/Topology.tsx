@@ -356,7 +356,7 @@ export function Topology() {
 
       {!loading && !error && graph && graph.nodes.length === 0 && (
         <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
-          No resources found in namespace "{namespace || 'default'}"
+          No resources found in namespace "{namespace || 'all namespaces'}"
         </div>
       )}
 
