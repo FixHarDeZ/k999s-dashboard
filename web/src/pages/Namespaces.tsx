@@ -2,6 +2,7 @@ import { RefreshButton } from '@/components/RefreshButton'
 import { useEffect, useState, useCallback } from 'react'
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
 import { FileCode2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { fetchNamespaceSummaries } from '@/lib/api'
 import { YamlSidePanel } from '@/components/YamlSidePanel'
 import type { NamespaceSummary } from '@/lib/types'
@@ -16,7 +17,14 @@ export function Namespaces() {
   useEffect(() => { load() }, [load])
 
   const columns = [
-    col.accessor('name', { header: 'Name', cell: (i) => <span className="font-medium text-xs text-primary-900">{i.getValue()}</span> }),
+    col.accessor('name', { header: 'Name', cell: (i) => (
+      <Link
+        to={`/namespaces/${i.getValue()}`}
+        className="font-medium text-xs text-primary-600 hover:text-primary-900 hover:underline"
+      >
+        {i.getValue()}
+      </Link>
+    ) }),
     col.accessor('status', { header: 'Status', cell: (i) => <span className="text-xs text-green-600">● {i.getValue()}</span> }),
     col.accessor('age', { header: 'Age', cell: (i) => <span className="text-xs text-gray-500">{i.getValue()}</span> }),
     col.display({
