@@ -1,6 +1,6 @@
 # k999s Dashboard — Project Index
 
-> Last updated: 2026-05-20
+> Last updated: 2026-05-21
 
 ## Overview
 
@@ -54,7 +54,7 @@ web/src/ → npm run build → internal/frontend/dist/
 | `src/components/LogViewer.tsx` | Streaming log slide-over panel |
 | `src/components/ExecTerminal.tsx` | xterm.js full-screen exec modal |
 | `src/components/DiagnosticPanel.tsx` | AI diagnostic streaming panel |
-| `src/pages/` | 13 pages: Overview, Topology, Events, Top, Pods, Deployments, Services, Nodes, Namespaces, ConfigMaps, Secrets, ResourceExplorer, (StatefulSets placeholder) |
+| `src/pages/` | 14 pages: Overview, Topology, Events, Top, Pods, Deployments, Services, Nodes, Namespaces, ConfigMaps, Secrets, ResourceExplorer, Settings, (StatefulSets placeholder) |
 
 ---
 
@@ -87,6 +87,9 @@ web/src/ → npm run build → internal/frontend/dist/
 | POST | `/deployments/:ns/:name/scale` | Scale `{replicas: N}` |
 | POST | `/deployments/:ns/:name/rollout-restart` | Rollout restart |
 | DELETE | `/deployments/:ns/:name` | Delete deployment |
+| GET | `/settings` | Get AI config (API key masked) |
+| PUT | `/settings` | Save AI config + hot-reload provider |
+| PUT | `/resource-apply` | Apply edited resource YAML |
 
 ### WebSocket
 
@@ -121,13 +124,29 @@ ai:
 | DaemonSets page | Not implemented |
 | HPA page | Not implemented |
 | Jobs / CronJobs page | Not implemented |
-| Canary / Istio / Gateway pages | Sidebar shows if CRD detected, but pages are not implemented (routes go nowhere) |
+| Canary / Istio / Gateway pages | Sidebar shows if CRD detected, but pages are not implemented |
 | Port-forward | Not implemented |
-| Context switching (live) | TopBar shows dropdown but switching doesn't reload k8s client |
-| YAML editing | Viewer only, no edit |
 | WebSocket live pod updates | Hub exists but informers not wired (manual refresh only) |
 | Rollback deployment | Not implemented |
 | Cordon/Drain nodes | Not implemented |
+
+## Changes in v0.1.0 Session (2026-05-21)
+
+| เรื่อง | รายละเอียด |
+|---|---|
+| **Pods containers** | Expandable row ▶/▼ แสดง container type (init/sidecar/main), state, restart count |
+| **Topology crash fix** | try/catch รอบ dagre + error state ป้องกัน white page |
+| **Topology error detail** | กด red node → fetch container statuses + AI Diagnose button |
+| **ResourceExplorer refresh** | Auto-refresh เมื่อ context/namespace เปลี่ยน |
+| **ResourceExplorer view toggle** | ปุ่ม [Full]/[Clean] YAML (Clean = strip status + managedFields) |
+| **Namespace dropdown scroll** | maxHeight + overflowY:auto |
+| **Settings page** | UI config AI provider + hot-reload ไม่ต้อง restart |
+| **AI Diagnostic deep** | GetPodDiagnosticContext: exit codes, previous logs, resource limits, events via FieldSelector |
+| **AI prompt size cap** | 20k chars total, truncate long lines, per-section budget |
+| **README.md** | Bilingual EN/TH với toggle anchor links |
+| **`.gitignore`** | Patterns: config.yaml, .k999s/, .env.*, *kubeconfig*, *.pem/*.key/*.crt |
+| **GitHub Release v0.1.0** | 5 platforms binary + checksums.txt |
+| **`/release` skill** | `~/.claude/skills/release/SKILL.md` |
 
 ---
 
