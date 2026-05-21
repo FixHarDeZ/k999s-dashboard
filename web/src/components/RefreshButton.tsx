@@ -13,7 +13,12 @@ export function RefreshButton({ onRefresh, className }: RefreshButtonProps) {
     if (loading) return
     setLoading(true)
     try {
-      await onRefresh()
+      // Wrap in Promise.resolve so both void and Promise<void> work
+      await Promise.all([
+        Promise.resolve(onRefresh()),
+        // Minimum 400ms so the loading state is always visible
+        new Promise<void>((r) => setTimeout(r, 400)),
+      ])
     } finally {
       setLoading(false)
     }
@@ -24,17 +29,23 @@ export function RefreshButton({ onRefresh, className }: RefreshButtonProps) {
       onClick={handleClick}
       disabled={loading}
       className={cn(
-        'text-xs px-2 py-1 rounded border transition-all',
+        'text-xs px-2 py-1 rounded border transition-all select-none',
         loading
           ? 'text-primary-400 border-primary-100 cursor-not-allowed'
           : 'text-primary-600 hover:bg-primary-50 border-primary-200 cursor-pointer',
         className,
       )}
     >
-      <span style={{ display: 'inline-block', transition: 'transform 0.5s', transform: loading ? 'rotate(360deg)' : 'none' }}>
+      <span
+        style={{
+          display: 'inline-block',
+          animation: loading ? 'spin 0.6s linear infinite' : 'none',
+        }}
+      >
         ↻
       </span>
       {' '}{loading ? 'Refreshing...' : 'Refresh'}
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </button>
   )
 }

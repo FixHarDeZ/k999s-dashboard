@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -377,7 +378,11 @@ func (r *Router) handleResourceApply(c *gin.Context) {
 		return
 	}
 	data, _ := json.Marshal(body.Data)
-	if err := r.k8s.ApplyResourceRaw(c.Request.Context(), body.Group, body.Version, body.Resource, body.Namespace, body.Name, data); err != nil {
+	// Use background context with timeout — request context may be cancelled
+	// before K8s completes, leaving the transport pool in a broken state.
+	applyCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := r.k8s.ApplyResourceRaw(applyCtx, body.Group, body.Version, body.Resource, body.Namespace, body.Name, data); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
