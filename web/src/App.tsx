@@ -16,10 +16,8 @@ import { Settings } from '@/pages/Settings'
 import { Istio } from '@/pages/Istio'
 import { Gateway } from '@/pages/Gateway'
 import { Canary } from '@/pages/Canary'
+import { StatefulSets } from '@/pages/StatefulSets'
 
-function Placeholder({ title }: { title: string }) {
-  return <div className="text-primary-700 font-medium">{title} — coming soon</div>
-}
 
 export default function App() {
   return (
@@ -31,7 +29,7 @@ export default function App() {
         <Route path="/top" element={<Top />} />
         <Route path="/pods" element={<Pods />} />
         <Route path="/deployments" element={<Deployments />} />
-        <Route path="/statefulsets" element={<Placeholder title="StatefulSets" />} />
+        <Route path="/statefulsets" element={<StatefulSets />} />
         <Route path="/services" element={<Services />} />
         <Route path="/configmaps" element={<ConfigMaps />} />
         <Route path="/secrets" element={<Secrets />} />
