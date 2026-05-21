@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Box, Rocket, Globe, Settings, Server, FolderOpen, Telescope, LayoutDashboard, Cpu, Lock, Activity, BarChart2, GitBranch, Layers, Waypoints, Bird } from 'lucide-react'
+import { Box, Rocket, Globe, Settings, Server, FolderOpen, Telescope, LayoutDashboard, Cpu, Lock, Activity, BarChart2, GitBranch, Layers, Waypoints, Bird, Network } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { CRDPresence } from '@/lib/types'
 
@@ -41,6 +41,7 @@ export function Sidebar({ detectedCRDs }: SidebarProps) {
       title: 'Network',
       items: [
         { label: 'Services', to: '/services', icon: <Globe size={14} /> },
+        { label: 'Ingresses', to: '/ingress', icon: <Network size={14} /> },
         ...(detectedCRDs?.istio ? [{ label: 'Istio', to: '/istio', icon: <Layers size={14} /> }] : []),
         ...(detectedCRDs?.gatewayApi ? [{ label: 'Gateway API', to: '/gateway', icon: <Waypoints size={14} /> }] : []),
         ...(detectedCRDs?.flaggerCanary || detectedCRDs?.argoRollouts ? [{ label: 'Canary', to: '/canary', icon: <Bird size={14} /> }] : []),

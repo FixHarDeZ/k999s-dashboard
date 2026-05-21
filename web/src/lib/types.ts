@@ -47,6 +47,15 @@ export interface ServiceSummary {
   age: string
 }
 
+export interface IngressSummary {
+  name: string
+  namespace: string
+  hosts: string
+  address: string
+  ports: string
+  age: string
+}
+
 export interface NodeSummary {
   name: string
   status: 'Ready' | 'NotReady' | string

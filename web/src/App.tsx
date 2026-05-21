@@ -17,6 +17,7 @@ import { Istio } from '@/pages/Istio'
 import { Gateway } from '@/pages/Gateway'
 import { Canary } from '@/pages/Canary'
 import { StatefulSets } from '@/pages/StatefulSets'
+import { Ingress } from '@/pages/Ingress'
 
 
 export default function App() {
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="/deployments" element={<Deployments />} />
         <Route path="/statefulsets" element={<StatefulSets />} />
         <Route path="/services" element={<Services />} />
+        <Route path="/ingress" element={<Ingress />} />
         <Route path="/configmaps" element={<ConfigMaps />} />
         <Route path="/secrets" element={<Secrets />} />
         <Route path="/nodes" element={<Nodes />} />

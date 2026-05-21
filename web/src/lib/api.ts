@@ -1,4 +1,4 @@
-import type { PodSummary, DeploymentSummary, StatefulSetSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary, TopologyGraph, APIResourceInfo, CRDPresence } from './types'
+import type { PodSummary, DeploymentSummary, StatefulSetSummary, IngressSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary, TopologyGraph, APIResourceInfo, CRDPresence } from './types'
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path)
@@ -58,6 +58,11 @@ export const deleteDeployment = (ns: string, name: string) =>
 
 export async function fetchServices(namespace: string): Promise<ServiceSummary[]> {
   const data = await get<{ items: ServiceSummary[] }>(`/api/v1/services?namespace=${namespace}`)
+  return data.items
+}
+
+export async function fetchIngresses(namespace: string): Promise<IngressSummary[]> {
+  const data = await get<{ items: IngressSummary[] }>(`/api/v1/ingresses?namespace=${namespace}`)
   return data.items
 }
 
