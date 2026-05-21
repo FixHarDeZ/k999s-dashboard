@@ -129,10 +129,20 @@ ai:
 | Port-forward | Not implemented |
 | WebSocket live pod updates | Hub exists but informers not wired (manual refresh only) |
 | Rollback deployment | Not implemented |
-| Cordon/Drain nodes | Not implemented (planned Batch B) |
-| Ingress page | Not implemented (planned Batch B) |
+| Cordon/Drain nodes | ✅ Implemented (2026-05-21) — Cordon/Uncordon/Drain buttons + ConfirmModal |
+| Ingress page | ✅ Implemented (2026-05-21) — Name/NS/Hosts/Address/Ports/Age table |
 | Helm menu | Not implemented (planned Batch C) |
 | Namespace drill-down | Not implemented (planned Batch D) |
+
+## Batch B (2026-05-21, pushed to main)
+
+| เรื่อง | รายละเอียด |
+|---|---|
+| **Ingress page** | `GET /api/v1/ingresses` + `Ingress.tsx` + sidebar Network group |
+| **Node Cordon/Drain** | `CordonNode`/`DrainNode` Go actions + `POST /nodes/:name/{cordon,uncordon,drain}` + Nodes.tsx rewrite |
+| **NodeSummary.Schedulable** | เพิ่ม field ให้ UI แสดง cordon status |
+
+---
 
 ## Batch A UI Polish (2026-05-21, pushed to main)
 

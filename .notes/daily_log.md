@@ -1,5 +1,31 @@
 # Daily Log
 
+## 2026-05-21 — Session End: Batch B (Ingress + Node actions)
+
+### สรุปงาน
+
+**Ingress page (Go + Frontend)**
+- Go: `IngressSummary` type, `ListIngresses` ใน client.go (networkingv1), handler + route `/api/v1/ingresses`
+- TS: `IngressSummary` interface, `fetchIngresses`
+- Frontend: `Ingress.tsx` page (Name/NS/Hosts/Address/Ports/Age), route `/ingress`, sidebar link (Network icon)
+
+**Node Cordon/Drain (Go + Frontend)**
+- `NodeSummary` เพิ่ม `Schedulable bool` — ดึงจาก `!n.Spec.Unschedulable`
+- `CordonNode(ctx, name, unschedulable bool)` + `DrainNode(ctx, name)` ใน actions.go
+- DrainNode: cordon ก่อน → list pods (FieldSelector=spec.nodeName) → delete non-DaemonSet, non-mirror pods
+- Routes: `POST /nodes/:name/cordon`, `POST /nodes/:name/uncordon`, `POST /nodes/:name/drain`
+- Frontend: `Nodes.tsx` rewrite — Schedulable column, Cordon/Uncordon/Drain buttons, ConfirmModal
+
+### Commits (4 commits)
+```
+db8e3f3 feat(ingress): add ListIngresses Go backend and /api/v1/ingresses endpoint
+da38a96 feat(ingress): add Ingress page to frontend
+63e40a0 feat(nodes): add CordonNode/DrainNode backend + schedulable field to NodeSummary
+843f3e3 feat(nodes): add Cordon/Uncordon/Drain actions with ConfirmModal
+```
+
+---
+
 ## 2026-05-21 — Session End: Batch A UI Polish
 
 ### สรุปงาน
