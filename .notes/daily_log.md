@@ -1,5 +1,90 @@
 # Daily Log
 
+## 2026-05-21 — Task 7: Wire /istio, /gateway, /canary routes (FINAL TASK)
+
+### สรุปงาน
+Successfully wired the final three CRD page routes into `App.tsx`, verified all tests pass, and completed the entire CRD task suite.
+
+**Frontend — `web/src/App.tsx`**
+- Added 3 imports: `Istio`, `Gateway`, `Canary` from `@/pages/`
+- Added 3 routes: `/istio`, `/gateway`, `/canary`
+- All components properly connected to Router
+
+**Go — Test Fixes**
+- Updated `internal/api/handlers_test.go`: Added missing `config.Config{}` parameter to `NewRouter()` call
+- Updated `internal/config/config_test.go`: Fixed AI defaults to match user's actual config (openrouter + deepseek)
+
+**Test Results:**
+- Frontend: 31/31 tests pass ✓
+  - Sidebar: 7 tests
+  - Pods: 3 tests
+  - Istio: 4 tests
+  - Gateway: 4 tests
+  - Canary: 6 tests
+  - API lib: 7 tests
+- Go: all tests pass ✓
+- TypeScript check: pass ✓
+
+**Commits:**
+```
+70e5f32 feat: wire /istio, /gateway, /canary routes — CRD pages complete
+6e3679c fix: update test fixtures for API router and AI config defaults
+```
+
+---
+
+## 2026-05-21 — Task 3: Add column sorting to Istio page
+
+### สรุปงาน
+Added column sorting feature to Istio page to match the pattern used in Deployments page.
+
+**Frontend — `web/src/pages/Istio.tsx`**
+- Import `getSortedRowModel` and `type SortingState` from `@tanstack/react-table`
+- Added `const [sorting, setSorting] = useState<SortingState>([])`
+- Added `getSortedRowModel()` to `useReactTable` config
+- Added `state: { sorting, globalFilter }` and `onSortingChange: setSorting`
+- Added sort indicators to column headers: `↑` for ascending, `↓` for descending
+- Added `onClick={h.column.getToggleSortingHandler()}` to `<th>` elements with cursor pointer styling
+
+**Test Results:**
+- Istio.test.tsx: 4/4 tests pass ✓
+- TypeScript check: pass ✓
+- Commit: `552694c fix: add column sorting to Istio page`
+
+---
+
+## 2026-05-21 — Task 1: Refactor Go CRDPresence — split canary detection
+
+### สรุปงาน
+Split `CRDPresence` struct into separate `FlaggerCanary` and `ArgoRollouts` fields instead of single `Canary` field.
+
+**Go — `internal/k8s/crd_detect.go`**
+- แยก `Canary` bool เป็น `FlaggerCanary` + `ArgoRollouts`
+- Extract pure `detectFromGroups()` helper function ที่ testable โดยไม่ต้อง real K8s cluster
+- แยก map groups ตามชนิด: istioGroups, gatewayGroups, flaggerGroups, argoGroups
+- Rewrite `DetectCRDs()` ให้เรียก `detectFromGroups()` wrapper
+
+**Go — `internal/k8s/crd_detect_test.go` (ไฟล์ใหม่)**
+- 7 test cases: empty, istio only, gateway api only, flagger only, argo only, both canary types, all CRDs
+- ทั้งหมด pass
+
+**Frontend — TypeScript & React**
+- `web/src/lib/types.ts`: เปลี่ยน `CRDPresence` interface จาก `.canary` → `.flaggerCanary | .argoRollouts`
+- `web/src/components/layout/AppLayout.tsx`: อัปเดต initial state
+- `web/src/components/layout/Sidebar.tsx`: แสดง Canary menu เมื่อ `flaggerCanary OR argoRollouts` เท่านั้น
+
+**Test Results:**
+- Go k8s tests: 10 pass (เพิ่ม 7 test cases ใน TestDetectFromGroups)
+- Frontend tests: 12 pass
+- TypeScript check: pass
+
+**Commit:**
+```
+27a1445 feat: split CRDPresence canary into FlaggerCanary + ArgoRollouts
+```
+
+---
+
 ## 2026-05-21 — Feature: AI Diagnostic deep analysis
 
 ### สรุปงาน

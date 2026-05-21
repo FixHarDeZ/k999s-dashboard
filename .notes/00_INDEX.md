@@ -1,6 +1,6 @@
 # k999s Dashboard — Project Index
 
-> Last updated: 2026-05-21
+> Last updated: 2026-05-21 (with column sorting on Istio page)
 
 ## Overview
 
@@ -124,7 +124,7 @@ ai:
 | DaemonSets page | Not implemented |
 | HPA page | Not implemented |
 | Jobs / CronJobs page | Not implemented |
-| Canary / Istio / Gateway pages | Sidebar shows if CRD detected, but pages are not implemented |
+| Canary / Istio / Gateway pages | ✅ Implemented (2026-05-21) — rich tabbed UI, YamlSidePanel, sorting |
 | Port-forward | Not implemented |
 | WebSocket live pod updates | Hub exists but informers not wired (manual refresh only) |
 | Rollback deployment | Not implemented |
@@ -147,6 +147,13 @@ ai:
 | **`.gitignore`** | Patterns: config.yaml, .k999s/, .env.*, *kubeconfig*, *.pem/*.key/*.crt |
 | **GitHub Release v0.1.0** | 5 platforms binary + checksums.txt |
 | **`/release` skill** | `~/.claude/skills/release/SKILL.md` |
+| **Istio page sorting** | Added column sorting (↑/↓) on VirtualService and DestinationRule tables |
+| **Istio page** | VS + DR tabs, columns: Name/NS/Hosts/Gateways/HTTP Routes/Age, sorting, YamlSidePanel |
+| **Gateway API page** | Gateway + HTTPRoute tabs, version discovery, sorting, YamlSidePanel |
+| **Canary page** | Flagger Canary + Argo Rollouts tabs (shown per detected CRD), phase badge colors, weight progress bar |
+| **YamlSidePanel component** | Shared slide-over YAML viewer, Full/Clean toggle, reused by Istio/Gateway/Canary |
+| **CRDPresence split** | `canary bool` → `flaggerCanary + argoRollouts` (Go + TS + AppLayout outlet context) |
+| **Sidebar tests** | 7 tests covering CRD detection visibility (Istio/Gateway/Flagger/Argo) |
 
 ---
 
