@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Box, Rocket, Globe, Settings, Server, FolderOpen, Telescope, LayoutDashboard, Cpu, Lock, Activity, BarChart2, GitBranch, Layers, Waypoints, Bird, SlidersHorizontal } from 'lucide-react'
+import { Box, Rocket, Globe, Settings, Server, FolderOpen, Telescope, LayoutDashboard, Cpu, Lock, Activity, BarChart2, GitBranch, Layers, Waypoints, Bird } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { CRDPresence } from '@/lib/types'
 
@@ -98,20 +98,6 @@ export function Sidebar({ detectedCRDs }: SidebarProps) {
             </div>
           ))}
         </div>
-      </div>
-      {/* Settings pinned at bottom */}
-      <div className="px-3 py-3 border-t border-primary-100">
-        <NavLink
-          to="/settings"
-          className={({ isActive }) =>
-            `flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
-              isActive ? 'bg-primary-600 text-white' : 'text-primary-700 hover:bg-primary-100'
-            }`
-          }
-        >
-          <SlidersHorizontal size={14} />
-          Settings
-        </NavLink>
       </div>
     </aside>
   )

@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
+import { NavLink } from 'react-router-dom'
+import { SlidersHorizontal } from 'lucide-react'
 
 interface DropdownProps {
   value: string
@@ -112,6 +114,20 @@ export function TopBar({ context, namespace, namespaces, contexts, onNamespaceCh
           placeholder="All Namespaces"
         />
       </div>
+
+      <NavLink
+        to="/settings"
+        style={({ isActive }) => ({
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 500,
+          color: '#ffffff', textDecoration: 'none',
+          background: isActive ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.12)',
+          border: '1px solid rgba(255,255,255,0.25)',
+        })}
+      >
+        <SlidersHorizontal size={13} />
+        Settings
+      </NavLink>
     </header>
   )
 }

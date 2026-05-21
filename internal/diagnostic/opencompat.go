@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 )
@@ -41,6 +42,11 @@ func (p *OpenCompatProvider) Diagnose(ctx context.Context, input DiagnosticInput
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("openai-compat request failed: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		defer resp.Body.Close()
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("openrouter API error %d: %s", resp.StatusCode, string(body))
 	}
 
 	ch := make(chan string, 16)
