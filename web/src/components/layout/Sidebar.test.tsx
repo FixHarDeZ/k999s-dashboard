@@ -16,4 +16,31 @@ describe('Sidebar', () => {
     render(<MemoryRouter><Sidebar /></MemoryRouter>)
     expect(screen.getByText('k999s')).toBeInTheDocument()
   })
+
+  it('hides Istio/Gateway/Canary when no CRDs detected', () => {
+    render(<MemoryRouter><Sidebar /></MemoryRouter>)
+    expect(screen.queryByText('Istio')).not.toBeInTheDocument()
+    expect(screen.queryByText('Gateway API')).not.toBeInTheDocument()
+    expect(screen.queryByText('Canary')).not.toBeInTheDocument()
+  })
+
+  it('shows Istio when istio CRD detected', () => {
+    render(<MemoryRouter><Sidebar detectedCRDs={{ istio: true, gatewayApi: false, flaggerCanary: false, argoRollouts: false }} /></MemoryRouter>)
+    expect(screen.getByText('Istio')).toBeInTheDocument()
+  })
+
+  it('shows Gateway API when gatewayApi CRD detected', () => {
+    render(<MemoryRouter><Sidebar detectedCRDs={{ istio: false, gatewayApi: true, flaggerCanary: false, argoRollouts: false }} /></MemoryRouter>)
+    expect(screen.getByText('Gateway API')).toBeInTheDocument()
+  })
+
+  it('shows Canary when flaggerCanary detected', () => {
+    render(<MemoryRouter><Sidebar detectedCRDs={{ istio: false, gatewayApi: false, flaggerCanary: true, argoRollouts: false }} /></MemoryRouter>)
+    expect(screen.getByText('Canary')).toBeInTheDocument()
+  })
+
+  it('shows Canary when argoRollouts detected', () => {
+    render(<MemoryRouter><Sidebar detectedCRDs={{ istio: false, gatewayApi: false, flaggerCanary: false, argoRollouts: true }} /></MemoryRouter>)
+    expect(screen.getByText('Canary')).toBeInTheDocument()
+  })
 })
