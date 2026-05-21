@@ -1,5 +1,50 @@
 # Daily Log
 
+## 2026-05-21 — Session End: v0.3.0 Features (Topology Warning + Top Metrics + YAML Edit)
+
+### สรุปงาน
+
+**Topology All-Namespace Modal**
+- `Topology.tsx` เพิ่ม modal confirm ก่อนโหลด topology ตอน namespace='' (All Namespaces)
+- State: `confirmed`, `cancelled` — reset เมื่อ namespace เปลี่ยน
+- ปุ่ม "โหลดทั้งหมด" / "ยกเลิก" — cancel แสดง placeholder แทน navigate
+
+**Top: Session Rolling Min/Max**
+- `Top.tsx` เพิ่ม `useRef` Map สำหรับ track min/max CPU + MEM ต่อ pod และ node ตั้งแต่เปิดหน้า
+- `parseMem` / `formatMem` helpers สำหรับ normalize Ki/Mi/Gi
+- แสดง `↓min ↑max` ใต้ค่า current — ซ่อนถ้า min===max (ยังมีแค่ 1 sample)
+- History clear เมื่อ namespace เปลี่ยน
+
+**YamlSidePanel: editable prop + edit mode**
+- `YamlSidePanel` เพิ่ม `editable?: boolean` prop
+- Edit mode: textarea + Apply/Cancel buttons
+- Apply: parse YAML → `applyResource()` → success toast 1.5s → reload via `reloadKey`
+
+**StatefulSets page (full implementation)**
+- Go: `ListStatefulSets` + `StatefulSetSummary` type + handler + route `/api/v1/statefulsets`
+- TS: `StatefulSetSummary` interface + `fetchStatefulSets` function
+- `StatefulSets.tsx` page (Name, NS, Ready, Age + YAML button) — replaces placeholder
+
+**YAML button on 6 sidebar pages**
+- Pods, Deployments: เพิ่ม `FileCode2` button ใน actions column
+- Services, ConfigMaps, Secrets, Namespaces: rewrite + เพิ่ม YAML button
+- Namespaces ใช้ `namespace=""` (cluster-scoped)
+
+### Commits (9 commits)
+```
+7e2e85f feat(k8s): add ListStatefulSets and StatefulSetSummary type
+f2ac2dd feat(api): add GET /api/v1/statefulsets endpoint
+22c48b6 feat(ts): add StatefulSetSummary type and fetchStatefulSets
+41cb9fe feat(topology): show confirmation modal when All Namespaces is selected
+f680731 fix(topology): align empty-state namespace display to 'all namespaces'
+6f66324 feat(top): add session rolling min/max CPU and memory tracking
+0d86127 feat(yaml-panel): add editable prop with edit/apply/cancel mode
+0a0c90a feat(statefulsets): implement full StatefulSets page with YAML view/edit
+2eee869 feat: add YAML view/edit button to Pods, Deployments, Services, ConfigMaps, Secrets, Namespaces
+```
+
+---
+
 ## 2026-05-21 — Session End: v0.2.0 Released
 
 ### สรุปงาน

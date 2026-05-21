@@ -1,6 +1,6 @@
 # k999s Dashboard — Project Index
 
-> Last updated: 2026-05-21 (with column sorting on Istio page)
+> Last updated: 2026-05-21 (v0.3.0 features: Topology warning, Top rolling metrics, YAML edit, StatefulSets page)
 
 ## Overview
 
@@ -54,7 +54,7 @@ web/src/ → npm run build → internal/frontend/dist/
 | `src/components/LogViewer.tsx` | Streaming log slide-over panel |
 | `src/components/ExecTerminal.tsx` | xterm.js full-screen exec modal |
 | `src/components/DiagnosticPanel.tsx` | AI diagnostic streaming panel |
-| `src/pages/` | 14 pages: Overview, Topology, Events, Top, Pods, Deployments, Services, Nodes, Namespaces, ConfigMaps, Secrets, ResourceExplorer, Settings, (StatefulSets placeholder) |
+| `src/pages/` | 15 pages: Overview, Topology, Events, Top, Pods, Deployments, StatefulSets, Services, Nodes, Namespaces, ConfigMaps, Secrets, ResourceExplorer, Settings, Istio, Gateway, Canary |
 
 ---
 
@@ -66,6 +66,7 @@ web/src/ → npm run build → internal/frontend/dist/
 |---|---|---|
 | GET | `/pods?namespace=` | List pods |
 | GET | `/deployments?namespace=` | List deployments |
+| GET | `/statefulsets?namespace=` | List statefulsets |
 | GET | `/services?namespace=` | List services |
 | GET | `/nodes` | List nodes |
 | GET | `/namespaces` | List namespace names (for TopBar) |
@@ -120,7 +121,7 @@ ai:
 
 | Feature | Status |
 |---|---|
-| StatefulSets page | Placeholder only — not implemented |
+| StatefulSets page | ✅ Implemented (2026-05-21) — Name/NS/Ready/Age table + YAML view/edit |
 | DaemonSets page | Not implemented |
 | HPA page | Not implemented |
 | Jobs / CronJobs page | Not implemented |
@@ -148,6 +149,18 @@ ai:
 | **GitHub Release v0.1.0** | 5 platforms binary + checksums.txt |
 | **`/release` skill** | `~/.claude/skills/release/SKILL.md` |
 | **Istio page sorting** | Added column sorting (↑/↓) on VirtualService and DestinationRule tables |
+
+## Changes in v0.3.0 Session (2026-05-21)
+
+| เรื่อง | รายละเอียด |
+|---|---|
+| **Topology warning** | Modal confirm ก่อนโหลด All Namespaces topology — ป้องกัน accidental load |
+| **Top rolling min/max** | Track session min/max CPU + MEM per pod/node via `useRef` Map — แสดงใต้ค่า current |
+| **YamlSidePanel editable** | `editable` prop เพิ่ม Edit/Apply/Cancel mode — `applyResource()` + `reloadKey` pattern |
+| **StatefulSets** | Go: `ListStatefulSets` + route; TS: type + api; Frontend: full table page + YAML |
+| **YAML button on 6 pages** | Pods, Deployments, Services, ConfigMaps, Secrets, Namespaces — `FileCode2` icon + editable YamlSidePanel |
+
+---
 
 ## Changes in v0.2.0 Session (2026-05-21)
 
