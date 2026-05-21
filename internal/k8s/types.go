@@ -101,3 +101,10 @@ type NodeMetricsSummary struct {
 	CPU    string `json:"cpu"`
 	Memory string `json:"memory"`
 }
+
+type StatefulSetSummary struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Ready     string `json:"ready"`
+	Age       string `json:"age"`
+}

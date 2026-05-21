@@ -107,6 +107,28 @@ func (c *Client) ListDeployments(ctx context.Context, namespace string) ([]Deplo
 	return summaries, nil
 }
 
+// ListStatefulSets returns statefulset summaries for the given namespace. Pass "" for all namespaces.
+func (c *Client) ListStatefulSets(ctx context.Context, namespace string) ([]StatefulSetSummary, error) {
+	list, err := c.kube.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	summaries := make([]StatefulSetSummary, 0, len(list.Items))
+	for _, s := range list.Items {
+		summaries = append(summaries, toStatefulSetSummary(s))
+	}
+	return summaries, nil
+}
+
+func toStatefulSetSummary(s appsv1.StatefulSet) StatefulSetSummary {
+	return StatefulSetSummary{
+		Name:      s.Name,
+		Namespace: s.Namespace,
+		Ready:     fmt.Sprintf("%d/%d", s.Status.ReadyReplicas, s.Status.Replicas),
+		Age:       formatAge(s.CreationTimestamp.Time),
+	}
+}
+
 // GetContexts returns kubeconfig context information.
 func (c *Client) GetContexts() ([]ContextInfo, error) {
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
