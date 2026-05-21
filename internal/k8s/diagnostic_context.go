@@ -113,14 +113,18 @@ func (c *Client) GetPodDiagnosticContext(ctx context.Context, namespace, name st
 	var previousLogParts []string
 
 	for _, cs := range pod.Status.ContainerStatuses {
-		// Current logs
-		cur := collectLogs(ctx, c, namespace, name, cs.Name, false, 150)
+		// Current logs — fewer lines per container when there are multiple containers
+		lineLimit := 60
+		if len(pod.Status.ContainerStatuses) == 1 {
+			lineLimit = 100
+		}
+		cur := collectLogs(ctx, c, namespace, name, cs.Name, false, lineLimit)
 		if cur != "" {
 			currentLogParts = append(currentLogParts, fmt.Sprintf("--- container: %s ---\n%s", cs.Name, cur))
 		}
 		// Previous logs (only if container has restarted)
 		if cs.RestartCount > 0 {
-			prev := collectLogs(ctx, c, namespace, name, cs.Name, true, 100)
+			prev := collectLogs(ctx, c, namespace, name, cs.Name, true, 50)
 			if prev != "" {
 				previousLogParts = append(previousLogParts, fmt.Sprintf("--- container: %s (previous run) ---\n%s", cs.Name, prev))
 			}
@@ -165,6 +169,11 @@ func writeContainerState(sb *strings.Builder, label string, state corev1.Contain
 	}
 }
 
+const (
+	maxLineLen  = 300  // truncate individual log lines longer than this
+	maxLogBytes = 6000 // max total characters per log section
+)
+
 func collectLogs(ctx context.Context, c *Client, namespace, pod, container string, previous bool, maxLines int) string {
 	stream, err := c.StreamLogs(ctx, namespace, pod, container, false, previous)
 	if err != nil || stream == nil {
@@ -172,13 +181,23 @@ func collectLogs(ctx context.Context, c *Client, namespace, pod, container strin
 	}
 	defer stream.Close()
 
+	scanner := bufio.NewScanner(io.LimitReader(stream, 256*1024))
+	scanner.Buffer(make([]byte, 64*1024), 64*1024) // handle long lines without panicking
 	var lines []string
-	scanner := bufio.NewScanner(io.LimitReader(stream, 512*1024)) // 512 KB cap
 	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
+		line := scanner.Text()
+		if len(line) > maxLineLen {
+			line = line[:maxLineLen] + " …(truncated)"
+		}
+		lines = append(lines, line)
 	}
 	if len(lines) > maxLines {
 		lines = lines[len(lines)-maxLines:]
 	}
-	return strings.Join(lines, "\n")
+	result := strings.Join(lines, "\n")
+	// Cap total size — keep the tail (most recent)
+	if len(result) > maxLogBytes {
+		result = "…(earlier lines omitted)\n" + result[len(result)-maxLogBytes:]
+	}
+	return result
 }

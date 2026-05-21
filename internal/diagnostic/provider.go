@@ -35,21 +35,41 @@ Format your response with these sections:
 🔧 Fix Steps: (3-5 numbered steps — concrete actions, not "check if X")
 ⚠️ Key Observations: (bullet list of notable findings from the data: exit codes, OOM signals, image issues, etc.)`
 
+// maxPromptChars is a conservative limit that fits within all supported model context windows.
+// ~20 000 chars ≈ 5 000 tokens, leaving plenty of room for the system prompt + response.
+const maxPromptChars = 20_000
+
+// capSection trims a section's content to fit within budget, keeping the tail (most recent).
+func capSection(content string, budget int) string {
+	if len(content) <= budget {
+		return content
+	}
+	return "…(earlier content omitted)\n" + content[len(content)-budget:]
+}
+
 func buildPrompt(input DiagnosticInput) string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "Pod: %s/%s\n\n", input.Namespace, input.PodName)
 
+	// PodDetails first — always small, no need to cap
 	if input.PodDetails != "" {
 		fmt.Fprintf(&sb, "%s\n", input.PodDetails)
 	}
+
+	// Distribute remaining budget: events 15%, prev logs 35%, current logs 50%
+	remaining := maxPromptChars - sb.Len()
+	eventBudget := remaining * 15 / 100
+	prevBudget := remaining * 35 / 100
+	curBudget := remaining * 50 / 100
+
 	if input.Events != "" {
-		fmt.Fprintf(&sb, "=== Kubernetes Events ===\n%s\n\n", input.Events)
+		fmt.Fprintf(&sb, "=== Kubernetes Events ===\n%s\n\n", capSection(input.Events, eventBudget))
 	}
 	if input.PreviousLogs != "" {
-		fmt.Fprintf(&sb, "=== Previous Run Logs (before last crash) ===\n%s\n\n", input.PreviousLogs)
+		fmt.Fprintf(&sb, "=== Previous Run Logs (before last crash) ===\n%s\n\n", capSection(input.PreviousLogs, prevBudget))
 	}
 	if input.CurrentLogs != "" {
-		fmt.Fprintf(&sb, "=== Current Logs ===\n%s\n\n", input.CurrentLogs)
+		fmt.Fprintf(&sb, "=== Current Logs ===\n%s\n\n", capSection(input.CurrentLogs, curBudget))
 	}
 	if input.CurrentLogs == "" && input.PreviousLogs == "" {
 		sb.WriteString("Note: No logs available — container may not have started or logs were lost.\n\n")
