@@ -13,6 +13,9 @@ import { Top } from '@/pages/Top'
 import { Topology } from '@/pages/Topology'
 import { ResourceExplorer } from '@/pages/ResourceExplorer'
 import { Settings } from '@/pages/Settings'
+import { Istio } from '@/pages/Istio'
+import { Gateway } from '@/pages/Gateway'
+import { Canary } from '@/pages/Canary'
 
 function Placeholder({ title }: { title: string }) {
   return <div className="text-primary-700 font-medium">{title} — coming soon</div>
@@ -36,6 +39,9 @@ export default function App() {
         <Route path="/namespaces" element={<Namespaces />} />
         <Route path="/explorer" element={<ResourceExplorer />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/istio" element={<Istio />} />
+        <Route path="/gateway" element={<Gateway />} />
+        <Route path="/canary" element={<Canary />} />
       </Route>
     </Routes>
   )
