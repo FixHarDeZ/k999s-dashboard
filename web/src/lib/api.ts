@@ -268,3 +268,6 @@ export async function listPortForwards(): Promise<PortForwardEntry[]> {
 
 export const stopPortForward = (id: string) =>
   action(`/api/v1/port-forward/${id}`, 'DELETE')
+
+export const rollbackDeployment = (ns: string, name: string) =>
+  action(`/api/v1/deployments/${ns}/${name}/rollback`, 'POST')

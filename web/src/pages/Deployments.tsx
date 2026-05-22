@@ -12,7 +12,7 @@ import {
   type SortingState,
 } from '@tanstack/react-table'
 import { FileCode2 } from 'lucide-react'
-import { fetchDeployments, scaleDeployment, rolloutRestartDeployment, deleteDeployment } from '@/lib/api'
+import { fetchDeployments, scaleDeployment, rolloutRestartDeployment, deleteDeployment, rollbackDeployment } from '@/lib/api'
 import { YamlSidePanel } from '@/components/YamlSidePanel'
 import type { DeploymentSummary } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -28,7 +28,7 @@ export function Deployments() {
   const [scaleTarget, setScaleTarget] = useState<DeploymentSummary | null>(null)
   const [scaleValue, setScaleValue] = useState(1)
   const [yamlTarget, setYamlTarget] = useState<DeploymentSummary | null>(null)
-  const [confirmAction, setConfirmAction] = useState<{ type: 'delete' | 'restart'; deployment: DeploymentSummary } | null>(null)
+  const [confirmAction, setConfirmAction] = useState<{ type: 'delete' | 'restart' | 'rollback'; deployment: DeploymentSummary } | null>(null)
   const [refreshInterval, setRefreshInterval] = useState<number | null>(null)
 
   const load = useCallback(() => {
@@ -58,6 +58,8 @@ export function Deployments() {
     setConfirmAction(null)
     if (type === 'delete') {
       await deleteDeployment(deployment.namespace, deployment.name).catch(console.error)
+    } else if (type === 'rollback') {
+      await rollbackDeployment(deployment.namespace, deployment.name).catch(console.error)
     } else {
       await rolloutRestartDeployment(deployment.namespace, deployment.name).catch(console.error)
     }
@@ -85,6 +87,9 @@ export function Deployments() {
           <button
             onClick={() => setConfirmAction({ type: 'restart', deployment: row.original })}
             className="p-1 text-primary-600 hover:bg-primary-50 rounded text-xs">↻ Restart</button>
+          <button
+            onClick={() => setConfirmAction({ type: 'rollback', deployment: row.original })}
+            className="p-1 text-primary-600 hover:bg-primary-50 rounded text-xs">↩ Rollback</button>
           <button
             onClick={() => setYamlTarget(row.original)}
             className="p-1 text-primary-600 hover:bg-primary-50 rounded text-xs"
@@ -202,9 +207,21 @@ export function Deployments() {
       )}
       {confirmAction && (
         <ConfirmModal
-          title={confirmAction.type === 'delete' ? `Delete deployment "${confirmAction.deployment.name}"?` : `Rollout restart "${confirmAction.deployment.name}"?`}
-          message="This action cannot be undone."
-          confirmLabel={confirmAction.type === 'delete' ? 'Delete' : 'Restart'}
+          title={
+            confirmAction.type === 'delete'
+              ? `Delete deployment "${confirmAction.deployment.name}"?`
+              : confirmAction.type === 'rollback'
+              ? `Rollback "${confirmAction.deployment.name}" to previous revision?`
+              : `Rollout restart "${confirmAction.deployment.name}"?`
+          }
+          message={
+            confirmAction.type === 'rollback'
+              ? 'This will revert the deployment to the previous revision.'
+              : 'This action cannot be undone.'
+          }
+          confirmLabel={
+            confirmAction.type === 'delete' ? 'Delete' : confirmAction.type === 'rollback' ? 'Rollback' : 'Restart'
+          }
           onConfirm={handleConfirm}
           onCancel={() => setConfirmAction(null)}
         />
