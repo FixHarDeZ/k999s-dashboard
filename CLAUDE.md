@@ -32,18 +32,27 @@ Guidance for Claude Code (claude.ai/code) when operating in this repository.
 ### Directory Layout & Build Flow
 - โฟลเดอร์ Output ของ Vite คือ `internal/frontend/dist` (ตั้งค่าผ่าน `build.outDir` ใน `web/vite.config.ts`) **ไม่ใช่** `web/dist`
 - ฝัง Frontend เข้าไปใน Go ด้วยระบบ `go:embed all:dist` ภายใน `internal/frontend/frontend.go`
+- `internal/frontend/dist` เป็น gitignored — `git add internal/frontend/dist/` จะ fail; dist ถูก embed ตอน build เท่านั้น
+- `node_modules/.vite/vitest/...` ถูก track ใน git — อาจขึ้น dirty หลัง run vitest; แก้ด้วย `git checkout -- <path>` ก่อน tag
 
 ### Go Package Breakdown
 - `internal/config`: โหลดสเปกจาก `~/.k999s/config.yaml` และ kubeconfig
 - `internal/k8s`: `client.go` (Read/List) และ `actions.go` (Mutate) Wrapping `kubernetes.Interface`
 - `internal/api`: Gin Router & Handlers (ใน Test คอนฟิก `hub` เป็น `nil` ได้)
 - `internal/ws`: WebSocket hub สำหรับจัดการส่งข้อมูล JSON ผ่าน `Broadcast(type, data)`
+- `internal/helm`: wraps `helm` CLI via `os/exec` — ไม่มี unit tests (ไม่สามารถ mock exec ได้); `go build ./...` คือ gate เดียว
+- **New endpoint pattern:** `types.go` → `client.go` (หรือ `actions.go` สำหรับ mutation) → `handlers.go` → `router.go`
 
 ### React Frontend
 - `src/lib/api.ts`: จัดการ HTTP Fetch ทั้งหมด (`get<T>()` สำหรับอ่าน, `action()` สำหรับแก้ไข)
 - `src/lib/types.ts`: สเปก TypeScript ที่ล้อตาม Go Summary Types
 - `src/hooks/useWebSocket.ts`: Hook สำหรับ Auto-reconnect และ dispatch message
 - **Context Filtering:** ทุก Page ใช้ `useOutletContext` ในการกรอง Namespace และต้องครอบด้วย Null-safe (`?? ''`) เสมอ
+- **URL-param pages:** Page ที่ได้ namespace จาก URL (เช่น NamespaceDetail) ใช้ `useParams` แทน `useOutletContext` ได้ — ไม่ต้องใช้ outlet context
+- **Sidebar icons:** ต้อง import icon ใน `Sidebar.tsx` line 2 เสมอ — lucide icons ไม่มี auto-import
+
+### Go Testing Gotcha
+- `fake.NewSimpleClientset` ไม่รองรับ FieldSelector — ถ้า test code ใช้ field selector (เช่น `spec.nodeName=<name>`) fake client จะ return ทุก object; ออกแบบ test fixtures ให้ทุก object อยู่บน target node เสมอ
 
 ### Tailwind v4 Styling Quirk
 - **ห้ามขยาย Theme ใน `tailwind.config.ts` (ไม่ได้ใช้งานแล้วใน v4)**
