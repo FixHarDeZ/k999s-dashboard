@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -694,5 +695,97 @@ func (r *Router) handlePatchHPALimits(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	c.Status(http.StatusNoContent)
+}
+
+func (r *Router) handleStartPortForward(c *gin.Context) {
+	var body struct {
+		Namespace  string `json:"namespace"`
+		TargetKind string `json:"targetKind"`
+		TargetName string `json:"targetName"`
+		LocalPort  int    `json:"localPort"`
+		RemotePort int    `json:"remotePort"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	podName := body.TargetName
+	remotePort := body.RemotePort
+
+	if body.TargetKind == "Service" {
+		var err error
+		podName, remotePort, err = r.k8s.ResolveServiceToPod(c.Request.Context(), body.Namespace, body.TargetName)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	id := fmt.Sprintf("%d", time.Now().UnixNano())
+	stopCh := make(chan struct{})
+	readyCh := make(chan struct{})
+
+	entry := &pfEntry{
+		ID:         id,
+		Namespace:  body.Namespace,
+		TargetKind: body.TargetKind,
+		TargetName: body.TargetName,
+		LocalPort:  body.LocalPort,
+		RemotePort: body.RemotePort,
+		stopCh:     stopCh,
+	}
+
+	r.pfMu.Lock()
+	r.pfEntries[id] = entry
+	r.pfMu.Unlock()
+
+	go func() {
+		if err := r.k8s.StartPortForward(context.Background(), body.Namespace, podName, body.LocalPort, remotePort, stopCh, readyCh); err != nil {
+			log.Printf("port-forward %s: %v", id, err)
+		}
+		r.pfMu.Lock()
+		delete(r.pfEntries, id)
+		r.pfMu.Unlock()
+	}()
+
+	select {
+	case <-readyCh:
+	case <-time.After(5 * time.Second):
+		close(stopCh)
+		r.pfMu.Lock()
+		delete(r.pfEntries, id)
+		r.pfMu.Unlock()
+		c.JSON(http.StatusGatewayTimeout, gin.H{"error": "port-forward timed out"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"id": id, "localPort": body.LocalPort})
+}
+
+func (r *Router) handleListPortForwards(c *gin.Context) {
+	r.pfMu.Lock()
+	entries := make([]*pfEntry, 0, len(r.pfEntries))
+	for _, e := range r.pfEntries {
+		entries = append(entries, e)
+	}
+	r.pfMu.Unlock()
+	c.JSON(http.StatusOK, gin.H{"items": entries})
+}
+
+func (r *Router) handleStopPortForward(c *gin.Context) {
+	id := c.Param("id")
+	r.pfMu.Lock()
+	entry, ok := r.pfEntries[id]
+	if ok {
+		delete(r.pfEntries, id)
+	}
+	r.pfMu.Unlock()
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "port-forward not found"})
+		return
+	}
+	close(entry.stopCh)
 	c.Status(http.StatusNoContent)
 }
