@@ -130,6 +130,31 @@ func toStatefulSetSummary(s appsv1.StatefulSet) StatefulSetSummary {
 	}
 }
 
+// ListDaemonSets returns daemonset summaries for the given namespace. Pass "" for all namespaces.
+func (c *Client) ListDaemonSets(ctx context.Context, namespace string) ([]DaemonSetSummary, error) {
+	list, err := c.kube.AppsV1().DaemonSets(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	summaries := make([]DaemonSetSummary, 0, len(list.Items))
+	for _, d := range list.Items {
+		summaries = append(summaries, toDaemonSetSummary(d))
+	}
+	return summaries, nil
+}
+
+func toDaemonSetSummary(d appsv1.DaemonSet) DaemonSetSummary {
+	return DaemonSetSummary{
+		Name:      d.Name,
+		Namespace: d.Namespace,
+		Desired:   d.Status.DesiredNumberScheduled,
+		Current:   d.Status.CurrentNumberScheduled,
+		Ready:     d.Status.NumberReady,
+		Available: d.Status.NumberAvailable,
+		Age:       formatAge(d.CreationTimestamp.Time),
+	}
+}
+
 // GetContexts returns kubeconfig context information.
 func (c *Client) GetContexts() ([]ContextInfo, error) {
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()

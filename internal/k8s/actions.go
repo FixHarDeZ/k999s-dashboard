@@ -87,3 +87,18 @@ func isMirrorPod(pod corev1.Pod) bool {
 	_, ok := pod.Annotations["kubernetes.io/config.mirror"]
 	return ok
 }
+
+func (c *Client) RolloutRestartDaemonSet(ctx context.Context, namespace, name string) error {
+	patch := fmt.Sprintf(
+		`{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}}}`,
+		time.Now().UTC().Format(time.RFC3339),
+	)
+	_, err := c.kube.AppsV1().DaemonSets(namespace).Patch(
+		ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{},
+	)
+	return err
+}
+
+func (c *Client) DeleteDaemonSet(ctx context.Context, namespace, name string) error {
+	return c.kube.AppsV1().DaemonSets(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+}

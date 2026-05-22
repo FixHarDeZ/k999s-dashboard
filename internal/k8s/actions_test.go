@@ -99,3 +99,23 @@ func TestDrainNode_CordonsAndDeletesNonDaemonSetPods(t *testing.T) {
 	_, err = fakeClient.CoreV1().Pods("default").Get(context.Background(), "normal-pod", metav1.GetOptions{})
 	assert.Error(t, err, "normal pod should be deleted")
 }
+
+func TestRolloutRestartDaemonSet_NoError(t *testing.T) {
+	fakeClient := fake.NewSimpleClientset(
+		&appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: "ds-1", Namespace: "default"}},
+	)
+	client := k8s.NewClientFromKubernetesClient(fakeClient, "")
+	err := client.RolloutRestartDaemonSet(context.Background(), "default", "ds-1")
+	require.NoError(t, err)
+}
+
+func TestDeleteDaemonSet_RemovesDaemonSet(t *testing.T) {
+	fakeClient := fake.NewSimpleClientset(
+		&appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: "ds-1", Namespace: "default"}},
+	)
+	client := k8s.NewClientFromKubernetesClient(fakeClient, "")
+	err := client.DeleteDaemonSet(context.Background(), "default", "ds-1")
+	require.NoError(t, err)
+	list, _ := fakeClient.AppsV1().DaemonSets("default").List(context.Background(), metav1.ListOptions{})
+	assert.Len(t, list.Items, 0)
+}
