@@ -23,6 +23,7 @@ import { CronJobs } from '@/pages/CronJobs'
 import { Ingress } from '@/pages/Ingress'
 import { Helm } from '@/pages/Helm'
 import { NamespaceDetail } from '@/pages/NamespaceDetail'
+import { HPA } from '@/pages/HPA'
 
 
 export default function App() {
@@ -39,6 +40,7 @@ export default function App() {
         <Route path="/daemonsets" element={<DaemonSets />} />
         <Route path="/jobs" element={<Jobs />} />
         <Route path="/cronjobs" element={<CronJobs />} />
+        <Route path="/hpa" element={<HPA />} />
         <Route path="/services" element={<Services />} />
         <Route path="/ingress" element={<Ingress />} />
         <Route path="/helm" element={<Helm />} />

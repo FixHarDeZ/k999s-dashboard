@@ -1,4 +1,4 @@
-import type { PodSummary, DeploymentSummary, StatefulSetSummary, DaemonSetSummary, IngressSummary, HelmReleaseSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary, TopologyGraph, APIResourceInfo, CRDPresence, JobSummary, CronJobSummary } from './types'
+import type { PodSummary, DeploymentSummary, StatefulSetSummary, DaemonSetSummary, IngressSummary, HelmReleaseSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary, TopologyGraph, APIResourceInfo, CRDPresence, JobSummary, CronJobSummary, HPASummary } from './types'
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path)
@@ -236,3 +236,11 @@ export const deleteCronJob = (ns: string, name: string) =>
 
 export const triggerCronJob = (ns: string, name: string) =>
   action(`/api/v1/cronjobs/${ns}/${name}/trigger`, 'POST')
+
+export async function fetchHPAs(namespace: string): Promise<HPASummary[]> {
+  const data = await get<{ items: HPASummary[] }>(`/api/v1/hpas?namespace=${namespace}`)
+  return data.items
+}
+
+export const patchHPALimits = (ns: string, name: string, minReplicas: number, maxReplicas: number) =>
+  action(`/api/v1/hpas/${ns}/${name}/limits`, 'PATCH', { minReplicas, maxReplicas })
