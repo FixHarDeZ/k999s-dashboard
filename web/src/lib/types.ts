@@ -219,3 +219,12 @@ export interface PortForwardEntry {
   localPort: number
   remotePort: number
 }
+
+export interface ClusterInfo {
+  contextName: string
+  clusterName: string
+  userName: string
+  k8sVersion: string
+  cpuPercent: string
+  memPercent: string
+}

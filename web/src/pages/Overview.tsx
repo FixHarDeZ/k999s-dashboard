@@ -2,8 +2,8 @@ import { RefreshButton } from '@/components/RefreshButton'
 import { DiagnosticPanel } from '@/components/DiagnosticPanel'
 import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { fetchNodes, fetchPods, fetchEvents, fetchNamespaceSummaries } from '@/lib/api'
-import type { NodeSummary, PodSummary, EventSummary } from '@/lib/types'
+import { fetchNodes, fetchPods, fetchEvents, fetchNamespaceSummaries, fetchClusterInfo } from '@/lib/api'
+import type { NodeSummary, PodSummary, EventSummary, ClusterInfo } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 const UNHEALTHY_STATUSES = ['CrashLoopBackOff', 'Error', 'OOMKilled', 'Failed', 'ImagePullBackOff', 'ErrImagePull']
@@ -27,6 +27,7 @@ export function Overview() {
   const [events, setEvents] = useState<EventSummary[]>([])
   const [nsCount, setNsCount] = useState(0)
   const [diagTarget, setDiagTarget] = useState<{ namespace: string; name: string } | null>(null)
+  const [clusterInfo, setClusterInfo] = useState<ClusterInfo | null>(null)
 
   const load = useCallback(() => {
     fetchNodes().then(setNodes).catch(console.error)
@@ -35,6 +36,7 @@ export function Overview() {
       setEvents(evts.filter((e) => e.type === 'Warning').slice(0, 10))
     }).catch(console.error)
     fetchNamespaceSummaries().then((ns) => setNsCount(ns.length)).catch(console.error)
+    fetchClusterInfo().then(setClusterInfo).catch(console.error)
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -49,6 +51,36 @@ export function Overview() {
         <h1 className="text-base font-bold text-primary-900">Cluster Overview</h1>
         <RefreshButton onRefresh={load} />
       </div>
+
+      {clusterInfo && (
+        <div style={{
+          background: '#fff', border: '1px solid #e0e7ff', borderRadius: 10,
+          padding: '12px 16px', marginBottom: 16,
+        }}>
+          <div style={{ fontSize: 11, color: '#6366f1', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Cluster</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px' }}>
+            {[
+              ['Context', clusterInfo.contextName],
+              ['Cluster', clusterInfo.clusterName],
+              ['User', clusterInfo.userName],
+              ['K8s Rev', clusterInfo.k8sVersion],
+            ].map(([label, value]) => (
+              <div key={label} style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                <span style={{ fontSize: 10, color: '#9ca3af', minWidth: 52, flexShrink: 0 }}>{label}:</span>
+                <span style={{ fontSize: 11, color: '#1e1b4b', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || '—'}</span>
+              </div>
+            ))}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ fontSize: 10, color: '#9ca3af', minWidth: 52, flexShrink: 0 }}>CPU:</span>
+              <span style={{ fontSize: 11, color: '#1e1b4b', fontWeight: 500 }}>{clusterInfo.cpuPercent}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ fontSize: 10, color: '#9ca3af', minWidth: 52, flexShrink: 0 }}>MEM:</span>
+              <span style={{ fontSize: 11, color: '#1e1b4b', fontWeight: 500 }}>{clusterInfo.memPercent}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats row */}
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>

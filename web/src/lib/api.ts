@@ -1,4 +1,4 @@
-import type { PodSummary, DeploymentSummary, StatefulSetSummary, DaemonSetSummary, IngressSummary, HelmReleaseSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary, TopologyGraph, APIResourceInfo, CRDPresence, JobSummary, CronJobSummary, HPASummary, PortForwardEntry } from './types'
+import type { PodSummary, DeploymentSummary, StatefulSetSummary, DaemonSetSummary, IngressSummary, HelmReleaseSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary, TopologyGraph, APIResourceInfo, CRDPresence, JobSummary, CronJobSummary, HPASummary, PortForwardEntry, ClusterInfo } from './types'
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path)
@@ -271,3 +271,7 @@ export const stopPortForward = (id: string) =>
 
 export const rollbackDeployment = (ns: string, name: string) =>
   action(`/api/v1/deployments/${ns}/${name}/rollback`, 'POST')
+
+export async function fetchClusterInfo(): Promise<ClusterInfo> {
+  return get<ClusterInfo>('/api/v1/cluster-info')
+}
