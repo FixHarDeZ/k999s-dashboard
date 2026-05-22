@@ -81,6 +81,8 @@ func NewRouter(k8sClient *k8s.Client, webFS embed.FS, hub *ws.Hub, diag diagnost
 	v1.GET("/cronjobs", r.handleListCronJobs)
 	v1.DELETE("/cronjobs/:ns/:name", r.handleDeleteCronJob)
 	v1.POST("/cronjobs/:ns/:name/trigger", r.handleTriggerCronJob)
+	v1.GET("/hpas", r.handleListHPAs)
+	v1.PATCH("/hpas/:ns/:name/limits", r.handlePatchHPALimits)
 	v1.GET("/settings", r.handleGetSettings)
 	v1.PUT("/settings", r.handleSaveSettings)
 	v1.GET("/helm/releases", r.handleListHelmReleases)
@@ -120,7 +122,7 @@ func (r *Router) Run(addr string) error { return r.engine.Run(addr) }
 func corsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", "http://localhost:5173")
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Content-Type")
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusNoContent)

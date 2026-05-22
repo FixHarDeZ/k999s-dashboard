@@ -7,6 +7,7 @@ import (
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -243,6 +244,36 @@ func toCronJobSummary(cj batchv1.CronJob) CronJobSummary {
 		Active:       len(cj.Status.Active),
 		LastSchedule: lastSchedule,
 		Age:          formatAge(cj.CreationTimestamp.Time),
+	}
+}
+
+// ListHPAs returns HPA summaries for the given namespace. Pass "" for all namespaces.
+func (c *Client) ListHPAs(ctx context.Context, namespace string) ([]HPASummary, error) {
+	list, err := c.kube.AutoscalingV2().HorizontalPodAutoscalers(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	summaries := make([]HPASummary, 0, len(list.Items))
+	for _, h := range list.Items {
+		summaries = append(summaries, toHPASummary(h))
+	}
+	return summaries, nil
+}
+
+func toHPASummary(h autoscalingv2.HorizontalPodAutoscaler) HPASummary {
+	minReplicas := int32(1)
+	if h.Spec.MinReplicas != nil {
+		minReplicas = *h.Spec.MinReplicas
+	}
+	return HPASummary{
+		Name:            h.Name,
+		Namespace:       h.Namespace,
+		TargetKind:      h.Spec.ScaleTargetRef.Kind,
+		TargetName:      h.Spec.ScaleTargetRef.Name,
+		MinReplicas:     minReplicas,
+		MaxReplicas:     h.Spec.MaxReplicas,
+		CurrentReplicas: h.Status.CurrentReplicas,
+		Age:             formatAge(h.CreationTimestamp.Time),
 	}
 }
 

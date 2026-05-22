@@ -669,3 +669,30 @@ func (r *Router) handleTriggerCronJob(c *gin.Context) {
 	}
 	c.Status(http.StatusNoContent)
 }
+
+func (r *Router) handleListHPAs(c *gin.Context) {
+	namespace := c.Query("namespace")
+	items, err := r.k8s.ListHPAs(c.Request.Context(), namespace)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": items})
+}
+
+func (r *Router) handlePatchHPALimits(c *gin.Context) {
+	ns, name := c.Param("ns"), c.Param("name")
+	var body struct {
+		MinReplicas int32 `json:"minReplicas"`
+		MaxReplicas int32 `json:"maxReplicas"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := r.k8s.PatchHPALimits(c.Request.Context(), ns, name, body.MinReplicas, body.MaxReplicas); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}

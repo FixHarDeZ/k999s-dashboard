@@ -112,6 +112,14 @@ func (c *Client) DeleteCronJob(ctx context.Context, namespace, name string) erro
 	return c.kube.BatchV1().CronJobs(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 }
 
+func (c *Client) PatchHPALimits(ctx context.Context, namespace, name string, min, max int32) error {
+	patch := fmt.Sprintf(`{"spec":{"minReplicas":%d,"maxReplicas":%d}}`, min, max)
+	_, err := c.kube.AutoscalingV2().HorizontalPodAutoscalers(namespace).Patch(
+		ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{},
+	)
+	return err
+}
+
 func (c *Client) TriggerCronJob(ctx context.Context, namespace, name string) error {
 	cj, err := c.kube.BatchV1().CronJobs(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {

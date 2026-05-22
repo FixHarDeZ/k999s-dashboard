@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -141,6 +142,23 @@ func TestDeleteCronJob_RemovesCronJob(t *testing.T) {
 	require.NoError(t, err)
 	list, _ := fakeClient.BatchV1().CronJobs("default").List(context.Background(), metav1.ListOptions{})
 	assert.Len(t, list.Items, 0)
+}
+
+func TestPatchHPALimits_NoError(t *testing.T) {
+	minRep := int32(2)
+	fakeClient := fake.NewSimpleClientset(
+		&autoscalingv2.HorizontalPodAutoscaler{
+			ObjectMeta: metav1.ObjectMeta{Name: "my-hpa", Namespace: "default"},
+			Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
+				MinReplicas: &minRep,
+				MaxReplicas: 10,
+				ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{Kind: "Deployment", Name: "my-app"},
+			},
+		},
+	)
+	client := k8s.NewClientFromKubernetesClient(fakeClient, "")
+	err := client.PatchHPALimits(context.Background(), "default", "my-hpa", 1, 5)
+	require.NoError(t, err)
 }
 
 func TestTriggerCronJob_CreatesJob(t *testing.T) {
