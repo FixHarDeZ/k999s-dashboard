@@ -1,13 +1,14 @@
 # k999s Dashboard — Project Index
 
-> Last updated: 2026-05-21 (Batch A: ConfirmModal, auto-refresh picker, log tail lines, AI Diagnose on Overview)
+> Last updated: 2026-05-22 (Batch A-E: Workload Pages, Live Updates, Port-forward, Rollback, Cluster Info, Enhanced Metrics, UX Improvements)
 
 ## Overview
 
 k999s เป็น Kubernetes dashboard แบบ local web app — single Go binary ที่ embed React frontend อ่าน `~/.kube/config` อัตโนมัติ เปิด browser เองที่ `:8080`
 
 **GitHub:** https://github.com/FixHarDeZ/k999s-dashboard  
-**Version:** v0.3.0 (file: `VERSION`) — [GitHub Release](https://github.com/FixHarDeZ/k999s-dashboard/releases/tag/v0.3.0)
+**Version:** v0.3.0 (file: `VERSION`) — [GitHub Release](https://github.com/FixHarDeZ/k999s-dashboard/releases/tag/v0.3.0)  
+**Branch HEAD:** 2026-05-22 — Batch A/B/C/E (DaemonSets, Jobs, CronJobs, HPA, Live Updates, Port-forward, Rollback, Cluster Info, Enhanced Metrics, UX)
 
 ---
 

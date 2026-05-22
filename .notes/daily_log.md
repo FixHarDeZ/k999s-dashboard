@@ -1,5 +1,111 @@
 # Daily Log
 
+## 2026-05-22 — Mega Session: Workload Pages, Live Updates, Port-forward, Rollback, Dashboard Enhancements
+
+### สรุปงาน
+
+#### Batch A — Workload Resource Pages
+- **DaemonSets** — list + Rollout Restart + Delete + YAML (Go + React + tests)
+- **Jobs** — list + status badge (Complete/Running/Failed) + Delete + YAML
+- **CronJobs** — list + Trigger Now + Delete + YAML + Suspend badge
+- **HPA** — list + Edit Limits modal (min/max replicas) + YAML
+
+#### Batch B — Live Updates (WebSocket Informers)
+- `internal/k8s/informers.go` — `BroadcastHub` interface + `StartInformers()` ใช้ SharedInformerFactory
+- `internal/k8s/client.go` — เพิ่ม `Kube()` accessor
+- `cmd/k999s/main.go` — start informers ด้วย cancelable context
+- `web/src/pages/Events.tsx` — รับ `events_update` signal → auto-refresh
+- Pods.tsx รับ `pods_update` อยู่แล้ว ✓
+
+#### Batch C — Port-forward + Deployment Rollback
+- `internal/k8s/portforward.go` — `StartPortForward()` (SPDY) + `ResolveServiceToPod()`
+- Router: `POST/GET/DELETE /api/v1/port-forward` + pfEntry manager (in-memory map + stopCh)
+- `PortForwardModal.tsx` — modal กรอก local/remote port
+- `PortForwardPanel.tsx` — fixed bottom-right panel poll 5s, stop button, localhost link
+- Pods.tsx + Services.tsx: เพิ่ม Cable icon button
+- `RollbackDeployment()` — หา RS revision N-1 → patch deployment spec.template
+- Deployments.tsx: เพิ่มปุ่ม ↩ Rollback + ConfirmModal
+
+#### Batch E1 — Cluster Info Panel
+- `GetClusterInfo()` — อ่าน kubeconfig (context/cluster/user) + Discovery (K8s version) + metrics aggregate (CPU%/MEM%)
+- `GET /api/v1/cluster-info` endpoint
+- Overview.tsx: Cluster info card ด้านบนสุด
+
+#### Batch E2 — Enhanced Metrics
+- `PodSummary` เพิ่ม 4 fields: CPURequest, CPULimit, MemRequest, MemLimit (sum container resources)
+- `NodeSummary` เพิ่ม 2 fields: CPUAllocatable, MemAllocatable (node.Status.Allocatable)
+- `formatCPUQuantity()` + `formatMemQuantity()` helpers
+- `web/src/lib/resourceUtils.ts` — `parseMillicores`, `parseMiB`, `pct` + 12 unit tests
+- Pods.tsx: 6 metric columns (CPU, %CPU/R, %CPU/L, MEM, %MEM/R, %MEM/L) + Node column
+- Nodes.tsx: 4 metric columns (CPU, %CPU/A, MEM, %MEM/A)
+
+#### Batch E3 — UX Improvements
+- Pods.tsx: ⚠ banner เมื่อมี pod ไม่ Running
+- Deployments.tsx: ⚠ banner เมื่อ deployment ไม่ fully ready
+- Overview.tsx: ปุ่ม 📋 View Logs ข้างๆ 🔍 AI Diagnose ใน unhealthy pods list → LogViewer + container select
+- Helm.tsx: Updated column (มีอยู่แล้ว ✓)
+
+### Stats
+- **Commits:** ~25 commits ใน session นี้
+- **Go tests:** 37 pass
+- **Frontend tests:** 51 pass
+- **TypeScript:** clean
+- **Build:** 57MB binary
+
+### Pushed to
+- **GitHub:** https://github.com/FixHarDeZ/k999s-dashboard (main branch)
+
+---
+
+## 2026-05-22 — E3 Task 3: Helm Updated column
+
+### สรุปงาน
+
+Verified the `Updated` column was already fully implemented in Helm.tsx. The feature is complete and working correctly.
+
+**Frontend — `web/src/pages/Helm.tsx`**
+- Column 51: `col.accessor('updated', { header: 'Updated', cell: (i) => <span className="text-xs text-gray-400">{i.getValue().split('.')[0]}</span> })`
+- Displays timestamp without fractional seconds (splits on '.')
+- Styled with gray-400 text color, matches other columns
+
+**Type Support — `web/src/lib/types.ts`**
+- Line 172: `HelmReleaseSummary` interface includes `updated: string` field
+- TypeScript check: pass ✓
+
+**Test Results:**
+- Frontend: 51/51 tests pass ✓
+- Go: all tests pass ✓
+- TypeScript check: pass ✓
+- Binary build: success ✓ (57MB)
+
+**Verification Status:** DONE - Feature is complete, all tests pass, build successful.
+
+---
+
+## 2026-05-22 — E2 Task 2: Resource Utils frontend
+
+### สรุปงาน
+
+Implemented resource parsing utilities (CPU, Memory) with full TDD approach — all 12 tests pass.
+
+**Frontend — `web/src/lib/resourceUtils.ts`**
+- `parseMillicores(s)`: Parse CPU string ("100m" → 100, "1.5" → 1500, "—" → null)
+- `parseMiB(s)`: Parse memory to MiB ("128Mi" → 128, "1Gi" → 1024, "1024Ki" → 1, "—" → null)
+- `pct(usage, total, parser)`: Compute percentage — returns "—" if usage/total unavailable or total=0
+
+**Test Results:**
+- Frontend: 51/51 tests pass ✓ (including 12 new resourceUtils tests)
+- `parseMillicores`: 4 tests (millicores, cores, dash, empty)
+- `parseMiB`: 4 tests (Mi, Gi, Ki, dash)
+- `pct`: 4 tests (percentage, usage dash, zero total, total dash)
+
+**Commit:**
+```
+db07578 feat(metrics): add resourceUtils parse/pct helpers with tests
+```
+
+---
+
 ## 2026-05-22 — v0.3.0 Released
 
 GitHub Release: https://github.com/FixHarDeZ/k999s-dashboard/releases/tag/v0.3.0
