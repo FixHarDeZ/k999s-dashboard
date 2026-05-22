@@ -1,4 +1,4 @@
-import type { PodSummary, DeploymentSummary, StatefulSetSummary, DaemonSetSummary, IngressSummary, HelmReleaseSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary, TopologyGraph, APIResourceInfo, CRDPresence } from './types'
+import type { PodSummary, DeploymentSummary, StatefulSetSummary, DaemonSetSummary, IngressSummary, HelmReleaseSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary, TopologyGraph, APIResourceInfo, CRDPresence, JobSummary } from './types'
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path)
@@ -217,3 +217,11 @@ export const rolloutRestartDaemonSet = (ns: string, name: string) =>
 
 export const deleteDaemonSet = (ns: string, name: string) =>
   action(`/api/v1/daemonsets/${ns}/${name}`, 'DELETE')
+
+export async function fetchJobs(namespace: string): Promise<JobSummary[]> {
+  const data = await get<{ items: JobSummary[] }>(`/api/v1/jobs?namespace=${namespace}`)
+  return data.items
+}
+
+export const deleteJob = (ns: string, name: string) =>
+  action(`/api/v1/jobs/${ns}/${name}`, 'DELETE')
