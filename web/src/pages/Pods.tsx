@@ -254,6 +254,7 @@ export function Pods() {
   })
 
   const unhealthyCount = pods.filter(p => !['Running', 'Succeeded'].includes(p.status)).length
+  const notRunningCount = pods.filter(p => p.status !== 'Running').length
 
   return (
     <div>
@@ -283,6 +284,13 @@ export function Pods() {
           />
         </div>
       </div>
+
+      {notRunningCount > 0 && (
+        <div className="mb-3 flex items-center gap-2 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-800">
+          <span>⚠</span>
+          <span>{notRunningCount} pod{notRunningCount > 1 ? 's' : ''} not Running</span>
+        </div>
+      )}
 
       <div className="border border-primary-100 rounded-lg overflow-hidden">
         <table className="w-full">
