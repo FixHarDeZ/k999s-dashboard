@@ -470,6 +470,7 @@ func (r *Router) handleSwitchContext(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	r.helm.SwitchContext(body.Context)
 	c.JSON(http.StatusOK, gin.H{"context": body.Context})
 }
 

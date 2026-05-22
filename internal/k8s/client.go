@@ -47,10 +47,14 @@ func NewClient(kubeconfigPath, context string) (*Client, error) {
 		return nil, fmt.Errorf("create clientset: %w", err)
 	}
 	rawConfig, _ := kubeConfig.RawConfig()
+	effectiveContext := rawConfig.CurrentContext
+	if context != "" {
+		effectiveContext = context
+	}
 	return &Client{
 		kube:           clientset,
 		restConfig:     restConfig,
-		currentContext: rawConfig.CurrentContext,
+		currentContext: effectiveContext,
 		kubeconfigPath: kubeconfigPath,
 	}, nil
 }
@@ -298,7 +302,7 @@ func (c *Client) GetContexts() ([]ContextInfo, error) {
 	for name, ctx := range rawConfig.Contexts {
 		contexts = append(contexts, ContextInfo{
 			Name:    name,
-			Current: name == rawConfig.CurrentContext,
+			Current: name == c.currentContext,
 			Cluster: ctx.Cluster,
 		})
 	}

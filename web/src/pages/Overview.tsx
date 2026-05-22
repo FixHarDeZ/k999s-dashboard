@@ -2,7 +2,7 @@ import { RefreshButton } from '@/components/RefreshButton'
 import { DiagnosticPanel } from '@/components/DiagnosticPanel'
 import { LogViewer } from '@/components/LogViewer'
 import { useEffect, useState, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useOutletContext } from 'react-router-dom'
 import { fetchNodes, fetchPods, fetchEvents, fetchNamespaceSummaries, fetchClusterInfo, fetchPodContainers } from '@/lib/api'
 import type { NodeSummary, PodSummary, EventSummary, ClusterInfo } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -23,6 +23,9 @@ function StatCard({ label, value, sub, color }: { label: string; value: number |
 }
 
 export function Overview() {
+  const outletContext = useOutletContext<{ namespace: string; context: string } | null>()
+  const currentContext = outletContext?.context ?? ''
+
   const [nodes, setNodes] = useState<NodeSummary[]>([])
   const [pods, setPods] = useState<PodSummary[]>([])
   const [events, setEvents] = useState<EventSummary[]>([])
@@ -41,7 +44,7 @@ export function Overview() {
     fetchClusterInfo().then(setClusterInfo).catch(console.error)
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load() }, [load, currentContext])
 
   const handleLogClick = async (pod: PodSummary) => {
     const containers = await fetchPodContainers(pod.namespace, pod.name).catch(() => [pod.name])

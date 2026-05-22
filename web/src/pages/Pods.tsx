@@ -110,7 +110,7 @@ export function Pods() {
 
   useWebSocket((msg) => {
     if (msg.type === 'pods_update') {
-      setPods(msg.data as PodSummary[])
+      load()
     }
   })
 
@@ -141,7 +141,7 @@ export function Pods() {
         const pod = i.row.original
         const isExpanded = expandedPod === pod.name
         return (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 min-w-0 max-w-[240px]">
             <button
               onClick={() => setExpandedPod(isExpanded ? null : pod.name)}
               className="text-[10px] text-gray-400 hover:text-primary-600 w-4 shrink-0"
@@ -149,19 +149,19 @@ export function Pods() {
             >
               {isExpanded ? '▼' : '▶'}
             </button>
-            <span className="font-medium text-primary-900 text-xs">{i.getValue()}</span>
+            <span className="font-medium text-primary-900 text-xs truncate" title={i.getValue()}>{i.getValue()}</span>
           </div>
         )
       },
     }),
-    columnHelper.accessor('namespace', { header: 'Namespace', cell: (i) => <span className="text-xs text-gray-500">{i.getValue()}</span> }),
+    columnHelper.accessor('namespace', { header: 'Namespace', cell: (i) => <span className="text-xs text-gray-500 block truncate max-w-[140px]" title={i.getValue()}>{i.getValue()}</span> }),
     columnHelper.accessor('status', { header: 'Status', cell: (i) => <StatusBadge status={i.getValue()} /> }),
     columnHelper.accessor('ready', { header: 'Ready', cell: (i) => <span className="text-xs">{i.getValue()}</span> }),
     columnHelper.accessor('restarts', { header: 'Restarts', cell: (i) => <span className={cn('text-xs', i.getValue() > 0 ? 'text-red-500 font-medium' : '')}>{i.getValue()}</span> }),
     columnHelper.accessor('age', { header: 'Age', cell: (i) => <span className="text-xs text-gray-500">{i.getValue()}</span> }),
     columnHelper.accessor('node', {
       header: 'Node',
-      cell: (i) => <span className="text-xs text-gray-500 font-mono">{i.getValue()}</span>,
+      cell: (i) => <span className="text-xs text-gray-500 font-mono block truncate max-w-[160px]" title={i.getValue()}>{i.getValue()}</span>,
     }),
     columnHelper.display({
       id: 'cpu',
@@ -215,7 +215,7 @@ export function Pods() {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => (
-        <div className="flex gap-1">
+        <div className="flex gap-1 whitespace-nowrap">
           <button onClick={() => handleOpenLogs(row.original)} className="p-1 text-primary-600 hover:bg-primary-50 rounded text-xs flex items-center gap-1"><FileText size={11} />Logs</button>
           <button onClick={() => handleOpenExec(row.original)} className="p-1 text-primary-600 hover:bg-primary-50 rounded text-xs flex items-center gap-1"><Terminal size={11} />Exec</button>
           <button
@@ -292,8 +292,8 @@ export function Pods() {
         </div>
       )}
 
-      <div className="border border-primary-100 rounded-lg overflow-hidden">
-        <table className="w-full">
+      <div className="border border-primary-100 rounded-lg overflow-x-auto">
+        <table className="min-w-full">
           <thead className="bg-primary-50">
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>

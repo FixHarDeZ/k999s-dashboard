@@ -31,13 +31,11 @@ export function AppLayout() {
 
   const handleContextChange = async (ctx: string) => {
     if (ctx === currentContext) return
-    const prev = currentContext
-    setCurrentContext(ctx) // update dropdown immediately (optimistic)
     try {
       await switchContext(ctx)
+      setCurrentContext(ctx)
       reloadClusterData()
     } catch (e) {
-      setCurrentContext(prev) // rollback on error
       console.error('Failed to switch context:', e)
     }
   }

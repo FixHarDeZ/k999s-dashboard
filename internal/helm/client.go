@@ -85,6 +85,11 @@ func (c *Client) UninstallRelease(namespace, name string) error {
 	return nil
 }
 
+// SwitchContext updates the kube context used for subsequent helm commands.
+func (c *Client) SwitchContext(ctx string) {
+	c.kubeContext = ctx
+}
+
 func (c *Client) appendKubeFlags(args []string) []string {
 	if c.kubeconfigPath != "" {
 		args = append(args, "--kubeconfig", c.kubeconfigPath)

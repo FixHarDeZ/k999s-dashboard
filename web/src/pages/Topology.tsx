@@ -289,8 +289,8 @@ export function Topology() {
   if (isAllNamespaces && cancelled) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3">
-        <p className="text-sm font-medium text-primary-600">เลือก namespace ก่อนใช้ Topology</p>
-        <p className="text-xs text-primary-400">ใช้ dropdown ด้านบนเพื่อเลือก namespace</p>
+        <p className="text-sm font-medium text-primary-600">Select a namespace to use Topology</p>
+        <p className="text-xs text-primary-400">Use the dropdown above to select a namespace</p>
       </div>
     )
   }
@@ -301,24 +301,24 @@ export function Topology() {
         <div className="bg-white border border-yellow-200 rounded-xl shadow-xl p-6 w-80">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-2xl">⚠️</span>
-            <h3 className="font-bold text-sm text-primary-900">All Namespaces — ข้อมูลอาจเยอะมาก</h3>
+            <h3 className="font-bold text-sm text-primary-900">All Namespaces — may load a lot of data</h3>
           </div>
           <p className="text-xs text-gray-600 mb-4">
-            การโหลด topology ทุก namespace พร้อมกันอาจทำให้ graph แสดงผลช้าหรือ layout ซับซ้อนจนอ่านยาก
-            แนะนำให้เลือก namespace เฉพาะก่อน
+            Loading topology across all namespaces at once may be slow and result in a complex graph that is hard to read.
+            It is recommended to select a specific namespace first.
           </p>
           <div className="flex gap-2 justify-end">
             <button
               onClick={() => setCancelled(true)}
               className="text-xs px-3 py-1.5 rounded border border-gray-200 text-gray-600 hover:bg-gray-50"
             >
-              ยกเลิก
+              Cancel
             </button>
             <button
               onClick={() => setConfirmed(true)}
               className="text-xs px-3 py-1.5 rounded bg-yellow-500 text-white hover:bg-yellow-600"
             >
-              โหลดทั้งหมด
+              Load All
             </button>
           </div>
         </div>
