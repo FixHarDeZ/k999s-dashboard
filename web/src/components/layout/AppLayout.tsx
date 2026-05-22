@@ -4,6 +4,7 @@ import { TopBar } from './TopBar'
 import { useState, useEffect } from 'react'
 import { fetchNamespaces, fetchContexts, fetchDetectedCRDs, switchContext } from '@/lib/api'
 import type { ContextInfo, CRDPresence } from '@/lib/types'
+import { PortForwardPanel } from '@/components/PortForwardPanel'
 
 export function AppLayout() {
   const [namespace, setNamespace] = useState('')
@@ -57,6 +58,7 @@ export function AppLayout() {
           <Outlet context={{ namespace, context: currentContext }} />
         </main>
       </div>
+      <PortForwardPanel />
     </div>
   )
 }

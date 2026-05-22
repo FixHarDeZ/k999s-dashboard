@@ -1,4 +1,4 @@
-import type { PodSummary, DeploymentSummary, StatefulSetSummary, DaemonSetSummary, IngressSummary, HelmReleaseSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary, TopologyGraph, APIResourceInfo, CRDPresence, JobSummary, CronJobSummary, HPASummary } from './types'
+import type { PodSummary, DeploymentSummary, StatefulSetSummary, DaemonSetSummary, IngressSummary, HelmReleaseSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary, TopologyGraph, APIResourceInfo, CRDPresence, JobSummary, CronJobSummary, HPASummary, PortForwardEntry } from './types'
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path)
@@ -244,3 +244,27 @@ export async function fetchHPAs(namespace: string): Promise<HPASummary[]> {
 
 export const patchHPALimits = (ns: string, name: string, minReplicas: number, maxReplicas: number) =>
   action(`/api/v1/hpas/${ns}/${name}/limits`, 'PATCH', { minReplicas, maxReplicas })
+
+export async function startPortForward(req: {
+  namespace: string
+  targetKind: string
+  targetName: string
+  localPort: number
+  remotePort: number
+}): Promise<{ id: string; localPort: number }> {
+  const res = await fetch('/api/v1/port-forward', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`)
+  return res.json()
+}
+
+export async function listPortForwards(): Promise<PortForwardEntry[]> {
+  const data = await get<{ items: PortForwardEntry[] }>('/api/v1/port-forward')
+  return data.items
+}
+
+export const stopPortForward = (id: string) =>
+  action(`/api/v1/port-forward/${id}`, 'DELETE')

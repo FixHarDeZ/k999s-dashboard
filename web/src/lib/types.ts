@@ -210,3 +210,12 @@ export interface HPASummary {
   currentReplicas: number
   age: string
 }
+
+export interface PortForwardEntry {
+  id: string
+  namespace: string
+  targetKind: 'Pod' | 'Service'
+  targetName: string
+  localPort: number
+  remotePort: number
+}

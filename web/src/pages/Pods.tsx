@@ -11,12 +11,13 @@ import {
   useReactTable,
   type SortingState,
 } from '@tanstack/react-table'
-import { RefreshCw, Trash2, Terminal, FileText, FileCode2 } from 'lucide-react'
+import { RefreshCw, Trash2, Terminal, FileText, FileCode2, Cable } from 'lucide-react'
 import { fetchPods, deletePod, restartPod, fetchPodContainers } from '@/lib/api'
 import { LogViewer } from '@/components/LogViewer'
 import { ExecTerminal } from '@/components/ExecTerminal'
 import { DiagnosticPanel } from '@/components/DiagnosticPanel'
 import { YamlSidePanel } from '@/components/YamlSidePanel'
+import { PortForwardModal } from '@/components/PortForwardModal'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import type { PodSummary, ContainerInfo } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -79,6 +80,7 @@ export function Pods() {
   const [yamlTarget, setYamlTarget] = useState<PodSummary | null>(null)
   const [confirmAction, setConfirmAction] = useState<{ type: 'delete' | 'restart'; pod: PodSummary } | null>(null)
   const [refreshInterval, setRefreshInterval] = useState<number | null>(null)
+  const [pfTarget, setPfTarget] = useState<PodSummary | null>(null)
 
   const handleOpenExec = async (pod: PodSummary) => {
     const containers = await fetchPodContainers(pod.namespace, pod.name).catch(() => [])
@@ -169,6 +171,9 @@ export function Pods() {
           >
             <FileCode2 size={11} />
           </button>
+          <button onClick={() => setPfTarget(row.original)} className="p-1 text-purple-600 hover:bg-purple-50 rounded" title="Port Forward">
+              <Cable size={13} />
+            </button>
           <button onClick={() => setConfirmAction({ type: 'delete', pod: row.original })} className="p-1 text-red-500 hover:bg-red-50 rounded text-xs flex items-center gap-1"><Trash2 size={11} />Delete</button>
         </div>
       ),
@@ -308,6 +313,14 @@ export function Pods() {
           confirmLabel={confirmAction.type === 'delete' ? 'Delete' : 'Restart'}
           onConfirm={handleConfirm}
           onCancel={() => setConfirmAction(null)}
+        />
+      )}
+      {pfTarget && (
+        <PortForwardModal
+          namespace={pfTarget.namespace}
+          targetKind="Pod"
+          targetName={pfTarget.name}
+          onClose={() => setPfTarget(null)}
         />
       )}
     </div>

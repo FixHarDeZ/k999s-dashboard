@@ -2,9 +2,10 @@ import { RefreshButton } from '@/components/RefreshButton'
 import { useEffect, useState, useCallback } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
-import { FileCode2 } from 'lucide-react'
+import { FileCode2, Cable } from 'lucide-react'
 import { fetchServices } from '@/lib/api'
 import { YamlSidePanel } from '@/components/YamlSidePanel'
+import { PortForwardModal } from '@/components/PortForwardModal'
 import type { ServiceSummary } from '@/lib/types'
 
 const col = createColumnHelper<ServiceSummary>()
@@ -14,6 +15,7 @@ export function Services() {
   const namespace = ctx?.namespace ?? ''
   const [items, setItems] = useState<ServiceSummary[]>([])
   const [yamlTarget, setYamlTarget] = useState<ServiceSummary | null>(null)
+  const [pfTarget, setPfTarget] = useState<ServiceSummary | null>(null)
 
   const load = useCallback(() => { fetchServices(namespace).then(setItems).catch(console.error) }, [namespace])
   useEffect(() => { load() }, [load])
@@ -29,9 +31,14 @@ export function Services() {
       id: 'actions',
       header: '',
       cell: ({ row }) => (
-        <button onClick={() => setYamlTarget(row.original)} className="p-1 text-primary-600 hover:bg-primary-50 rounded" title="View/Edit YAML">
-          <FileCode2 size={13} />
-        </button>
+        <div className="flex gap-1">
+          <button onClick={() => setYamlTarget(row.original)} className="p-1 text-primary-600 hover:bg-primary-50 rounded" title="View/Edit YAML">
+            <FileCode2 size={13} />
+          </button>
+          <button onClick={() => setPfTarget(row.original)} className="p-1 text-purple-600 hover:bg-purple-50 rounded" title="Port Forward">
+            <Cable size={13} />
+          </button>
+        </div>
       ),
     }),
   ]
@@ -59,6 +66,14 @@ export function Services() {
           name={yamlTarget.name}
           onClose={() => setYamlTarget(null)}
           editable
+        />
+      )}
+      {pfTarget && (
+        <PortForwardModal
+          namespace={pfTarget.namespace}
+          targetKind="Service"
+          targetName={pfTarget.name}
+          onClose={() => setPfTarget(null)}
         />
       )}
     </div>
