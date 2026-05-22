@@ -21,6 +21,10 @@ type PodSummary struct {
 	Node       string          `json:"node"`
 	IP         string          `json:"ip"`
 	Containers []ContainerInfo `json:"containers"`
+	CPURequest string          `json:"cpuRequest"`
+	CPULimit   string          `json:"cpuLimit"`
+	MemRequest string          `json:"memRequest"`
+	MemLimit   string          `json:"memLimit"`
 }
 
 // DeploymentSummary is the API response type for deployment list items.
@@ -55,7 +59,9 @@ type NodeSummary struct {
 	Roles       string `json:"roles"`
 	Age         string `json:"age"`
 	Version     string `json:"version"`
-	Schedulable bool   `json:"schedulable"`
+	Schedulable    bool   `json:"schedulable"`
+	CPUAllocatable string `json:"cpuAllocatable"`
+	MemAllocatable string `json:"memAllocatable"`
 }
 
 type NamespaceSummary struct {

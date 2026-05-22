@@ -10,6 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -123,6 +124,35 @@ func TestListEvents_ReturnsList(t *testing.T) {
 	assert.Len(t, events, 1)
 	assert.Equal(t, "Warning", events[0].Type)
 	assert.Equal(t, "BackOff", events[0].Reason)
+}
+
+func TestListPods_IncludesRequests(t *testing.T) {
+	cpuReq := resource.MustParse("100m")
+	memReq := resource.MustParse("128Mi")
+	fakeClient := fake.NewSimpleClientset(
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: "default"},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{{
+					Name:  "main",
+					Image: "nginx",
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceCPU:    cpuReq,
+							corev1.ResourceMemory: memReq,
+						},
+					},
+				}},
+			},
+		},
+	)
+	client := k8s.NewClientFromKubernetesClient(fakeClient, "")
+	items, err := client.ListPods(context.Background(), "default")
+	require.NoError(t, err)
+	assert.Len(t, items, 1)
+	assert.Equal(t, "100m", items[0].CPURequest)
+	assert.Equal(t, "128Mi", items[0].MemRequest)
+	assert.Equal(t, "—", items[0].CPULimit)
 }
 
 func TestListPods_CrashLoopBackOffStatus(t *testing.T) {

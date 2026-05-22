@@ -12,6 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -481,6 +482,22 @@ func toPodSummary(p corev1.Pod) PodSummary {
 		})
 	}
 
+	var cpuReq, cpuLim, memReq, memLim resource.Quantity
+	for _, c := range p.Spec.Containers {
+		if v, ok := c.Resources.Requests[corev1.ResourceCPU]; ok {
+			cpuReq.Add(v)
+		}
+		if v, ok := c.Resources.Limits[corev1.ResourceCPU]; ok {
+			cpuLim.Add(v)
+		}
+		if v, ok := c.Resources.Requests[corev1.ResourceMemory]; ok {
+			memReq.Add(v)
+		}
+		if v, ok := c.Resources.Limits[corev1.ResourceMemory]; ok {
+			memLim.Add(v)
+		}
+	}
+
 	return PodSummary{
 		Name:       p.Name,
 		Namespace:  p.Namespace,
@@ -491,6 +508,10 @@ func toPodSummary(p corev1.Pod) PodSummary {
 		Node:       p.Spec.NodeName,
 		IP:         p.Status.PodIP,
 		Containers: containers,
+		CPURequest: formatCPUQuantity(cpuReq),
+		CPULimit:   formatCPUQuantity(cpuLim),
+		MemRequest: formatMemQuantity(memReq),
+		MemLimit:   formatMemQuantity(memLim),
 	}
 }
 
@@ -517,6 +538,33 @@ func formatAge(t time.Time) string {
 	default:
 		return fmt.Sprintf("%dd", int(d.Hours()/24))
 	}
+}
+
+// formatCPUQuantity formats a CPU Quantity as "Xm" (< 1 core) or "X.X" (cores).
+// Returns "—" if the quantity is zero (not set).
+func formatCPUQuantity(q resource.Quantity) string {
+	if q.IsZero() {
+		return "—"
+	}
+	millis := q.MilliValue()
+	if millis >= 1000 {
+		return fmt.Sprintf("%.1f", float64(millis)/1000)
+	}
+	return fmt.Sprintf("%dm", millis)
+}
+
+// formatMemQuantity formats a memory Quantity as "XMi" or "X.XGi".
+// Returns "—" if the quantity is zero.
+func formatMemQuantity(q resource.Quantity) string {
+	if q.IsZero() {
+		return "—"
+	}
+	bytes := q.Value()
+	const mi = 1024 * 1024
+	if bytes >= 1024*mi {
+		return fmt.Sprintf("%.1fGi", float64(bytes)/float64(1024*mi))
+	}
+	return fmt.Sprintf("%dMi", bytes/mi)
 }
 
 func (c *Client) ListServices(ctx context.Context, namespace string) ([]ServiceSummary, error) {
@@ -608,12 +656,14 @@ func (c *Client) ListNodes(ctx context.Context) ([]NodeSummary, error) {
 			rolesStr = "<none>"
 		}
 		out = append(out, NodeSummary{
-			Name:        n.Name,
-			Status:      status,
-			Roles:       rolesStr,
-			Age:         formatAge(n.CreationTimestamp.Time),
-			Version:     n.Status.NodeInfo.KubeletVersion,
-			Schedulable: !n.Spec.Unschedulable,
+			Name:           n.Name,
+			Status:         status,
+			Roles:          rolesStr,
+			Age:            formatAge(n.CreationTimestamp.Time),
+			Version:        n.Status.NodeInfo.KubeletVersion,
+			Schedulable:    !n.Spec.Unschedulable,
+			CPUAllocatable: formatCPUQuantity(n.Status.Allocatable[corev1.ResourceCPU]),
+			MemAllocatable: formatMemQuantity(n.Status.Allocatable[corev1.ResourceMemory]),
 		})
 	}
 	return out, nil
