@@ -17,6 +17,10 @@ export interface PodSummary {
   node: string
   ip: string
   containers: ContainerInfo[]
+  cpuRequest: string
+  cpuLimit: string
+  memRequest: string
+  memLimit: string
 }
 
 export interface DeploymentSummary {

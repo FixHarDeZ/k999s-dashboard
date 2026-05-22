@@ -9,8 +9,8 @@ vi.mock('@/hooks/useWebSocket', () => ({ useWebSocket: vi.fn() }))
 
 
 const mockPods = [
-  { name: 'nginx-abc', namespace: 'default', status: 'Running', ready: '1/1', restarts: 0, age: '2h', node: 'node-1', ip: '10.0.0.1', containers: [] },
-  { name: 'crash-pod', namespace: 'default', status: 'CrashLoopBackOff', ready: '0/1', restarts: 5, age: '30m', node: 'node-2', ip: '10.0.0.2', containers: [] },
+  { name: 'nginx-abc', namespace: 'default', status: 'Running', ready: '1/1', restarts: 0, age: '2h', node: 'node-1', ip: '10.0.0.1', containers: [], cpuRequest: '100m', cpuLimit: '500m', memRequest: '128Mi', memLimit: '256Mi' },
+  { name: 'crash-pod', namespace: 'default', status: 'CrashLoopBackOff', ready: '0/1', restarts: 5, age: '30m', node: 'node-2', ip: '10.0.0.2', containers: [], cpuRequest: '100m', cpuLimit: '500m', memRequest: '128Mi', memLimit: '256Mi' },
 ]
 
 function renderPods() {
@@ -26,6 +26,7 @@ function renderPods() {
 describe('Pods page', () => {
   beforeEach(() => {
     vi.mocked(api.fetchPods).mockResolvedValue(mockPods)
+    vi.mocked(api.fetchPodMetrics).mockResolvedValue([])
   })
 
   it('renders pod names after loading', async () => {

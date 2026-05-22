@@ -12,14 +12,15 @@ import {
   type SortingState,
 } from '@tanstack/react-table'
 import { RefreshCw, Trash2, Terminal, FileText, FileCode2, Cable } from 'lucide-react'
-import { fetchPods, deletePod, restartPod, fetchPodContainers } from '@/lib/api'
+import { fetchPods, deletePod, restartPod, fetchPodContainers, fetchPodMetrics } from '@/lib/api'
+import { parseMillicores, parseMiB, pct } from '@/lib/resourceUtils'
 import { LogViewer } from '@/components/LogViewer'
 import { ExecTerminal } from '@/components/ExecTerminal'
 import { DiagnosticPanel } from '@/components/DiagnosticPanel'
 import { YamlSidePanel } from '@/components/YamlSidePanel'
 import { PortForwardModal } from '@/components/PortForwardModal'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import type { PodSummary, ContainerInfo } from '@/lib/types'
+import type { PodSummary, ContainerInfo, PodMetricsSummary } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 const columnHelper = createColumnHelper<PodSummary>()
@@ -81,6 +82,7 @@ export function Pods() {
   const [confirmAction, setConfirmAction] = useState<{ type: 'delete' | 'restart'; pod: PodSummary } | null>(null)
   const [refreshInterval, setRefreshInterval] = useState<number | null>(null)
   const [pfTarget, setPfTarget] = useState<PodSummary | null>(null)
+  const [podMetrics, setPodMetrics] = useState<PodMetricsSummary[]>([])
 
   const handleOpenExec = async (pod: PodSummary) => {
     const containers = await fetchPodContainers(pod.namespace, pod.name).catch(() => [])
@@ -93,7 +95,13 @@ export function Pods() {
   }
 
   const load = useCallback(() => {
-    fetchPods(namespace).then(setPods).catch(console.error)
+    Promise.all([
+      fetchPods(namespace),
+      fetchPodMetrics(namespace).catch(() => [] as PodMetricsSummary[]),
+    ]).then(([pods, metrics]) => {
+      setPods(pods)
+      setPodMetrics(metrics)
+    }).catch(console.error)
   }, [namespace])
 
   useEffect(() => {
@@ -124,6 +132,8 @@ export function Pods() {
     load()
   }
 
+  const metricsMap = new Map(podMetrics.map(m => [`${m.namespace}/${m.name}`, m]))
+
   const columns = [
     columnHelper.accessor('name', {
       header: 'Name',
@@ -149,6 +159,58 @@ export function Pods() {
     columnHelper.accessor('ready', { header: 'Ready', cell: (i) => <span className="text-xs">{i.getValue()}</span> }),
     columnHelper.accessor('restarts', { header: 'Restarts', cell: (i) => <span className={cn('text-xs', i.getValue() > 0 ? 'text-red-500 font-medium' : '')}>{i.getValue()}</span> }),
     columnHelper.accessor('age', { header: 'Age', cell: (i) => <span className="text-xs text-gray-500">{i.getValue()}</span> }),
+    columnHelper.accessor('node', {
+      header: 'Node',
+      cell: (i) => <span className="text-xs text-gray-500 font-mono">{i.getValue()}</span>,
+    }),
+    columnHelper.display({
+      id: 'cpu',
+      header: 'CPU',
+      cell: ({ row }) => {
+        const m = metricsMap.get(`${row.original.namespace}/${row.original.name}`)
+        return <span className="text-xs font-mono text-gray-700">{m?.cpu ?? '—'}</span>
+      },
+    }),
+    columnHelper.display({
+      id: 'cpuR',
+      header: '%CPU/R',
+      cell: ({ row }) => {
+        const m = metricsMap.get(`${row.original.namespace}/${row.original.name}`)
+        return <span className="text-xs text-gray-500">{pct(m?.cpu ?? '—', row.original.cpuRequest, parseMillicores)}</span>
+      },
+    }),
+    columnHelper.display({
+      id: 'cpuL',
+      header: '%CPU/L',
+      cell: ({ row }) => {
+        const m = metricsMap.get(`${row.original.namespace}/${row.original.name}`)
+        return <span className="text-xs text-gray-500">{pct(m?.cpu ?? '—', row.original.cpuLimit, parseMillicores)}</span>
+      },
+    }),
+    columnHelper.display({
+      id: 'mem',
+      header: 'MEM',
+      cell: ({ row }) => {
+        const m = metricsMap.get(`${row.original.namespace}/${row.original.name}`)
+        return <span className="text-xs font-mono text-gray-700">{m?.memory ?? '—'}</span>
+      },
+    }),
+    columnHelper.display({
+      id: 'memR',
+      header: '%MEM/R',
+      cell: ({ row }) => {
+        const m = metricsMap.get(`${row.original.namespace}/${row.original.name}`)
+        return <span className="text-xs text-gray-500">{pct(m?.memory ?? '—', row.original.memRequest, parseMiB)}</span>
+      },
+    }),
+    columnHelper.display({
+      id: 'memL',
+      header: '%MEM/L',
+      cell: ({ row }) => {
+        const m = metricsMap.get(`${row.original.namespace}/${row.original.name}`)
+        return <span className="text-xs text-gray-500">{pct(m?.memory ?? '—', row.original.memLimit, parseMiB)}</span>
+      },
+    }),
     columnHelper.display({
       id: 'actions',
       header: 'Actions',
