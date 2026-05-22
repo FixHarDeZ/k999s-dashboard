@@ -160,3 +160,12 @@ type HPASummary struct {
 	CurrentReplicas int32  `json:"currentReplicas"`
 	Age             string `json:"age"`
 }
+
+type ClusterInfo struct {
+	ContextName string `json:"contextName"`
+	ClusterName string `json:"clusterName"`
+	UserName    string `json:"userName"`
+	K8sVersion  string `json:"k8sVersion"`
+	CPUPercent  string `json:"cpuPercent"`
+	MemPercent  string `json:"memPercent"`
+}

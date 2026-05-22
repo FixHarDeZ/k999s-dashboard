@@ -802,3 +802,12 @@ func (r *Router) handleRollbackDeployment(c *gin.Context) {
 	}
 	c.Status(http.StatusNoContent)
 }
+
+func (r *Router) handleGetClusterInfo(c *gin.Context) {
+	info, err := r.k8s.GetClusterInfo(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, info)
+}

@@ -15,6 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	metricsclient "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
 // Client wraps the Kubernetes clientset with domain-specific methods.
@@ -301,6 +302,65 @@ func (c *Client) GetContexts() ([]ContextInfo, error) {
 		})
 	}
 	return contexts, nil
+}
+
+// GetClusterInfo returns context/cluster/user/K8s version and cluster-wide CPU/MEM utilization.
+func (c *Client) GetClusterInfo(ctx context.Context) (ClusterInfo, error) {
+	info := ClusterInfo{
+		ContextName: c.currentContext,
+		CPUPercent:  "—",
+		MemPercent:  "—",
+	}
+
+	// Read cluster + user from raw kubeconfig.
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	if c.kubeconfigPath != "" {
+		loadingRules.ExplicitPath = c.kubeconfigPath
+	}
+	rawConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		loadingRules, &clientcmd.ConfigOverrides{},
+	).RawConfig()
+	if err == nil {
+		if ctx2, ok := rawConfig.Contexts[c.currentContext]; ok {
+			info.ClusterName = ctx2.Cluster
+			info.UserName = ctx2.AuthInfo
+		}
+	}
+
+	// K8s server version.
+	if sv, err := c.kube.Discovery().ServerVersion(); err == nil {
+		info.K8sVersion = sv.GitVersion
+	}
+
+	// CPU/MEM: aggregate node allocatable vs usage.
+	nodeList, err := c.kube.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return info, nil
+	}
+	var totalCPUm, totalMemB int64
+	for _, n := range nodeList.Items {
+		totalCPUm += n.Status.Allocatable.Cpu().MilliValue()
+		totalMemB += n.Status.Allocatable.Memory().Value()
+	}
+
+	if c.restConfig != nil && totalCPUm > 0 {
+		mc, err := metricsclient.NewForConfig(c.restConfig)
+		if err == nil {
+			if ml, err := mc.MetricsV1beta1().NodeMetricses().List(ctx, metav1.ListOptions{}); err == nil {
+				var usedCPUm, usedMemB int64
+				for _, m := range ml.Items {
+					usedCPUm += m.Usage.Cpu().MilliValue()
+					usedMemB += m.Usage.Memory().Value()
+				}
+				info.CPUPercent = fmt.Sprintf("%d%%", usedCPUm*100/totalCPUm)
+				if totalMemB > 0 {
+					info.MemPercent = fmt.Sprintf("%d%%", usedMemB*100/totalMemB)
+				}
+			}
+		}
+	}
+
+	return info, nil
 }
 
 // containerStateInfo extracts the state name and reason from a ContainerState.
