@@ -1,8 +1,9 @@
 import { RefreshButton } from '@/components/RefreshButton'
 import { DiagnosticPanel } from '@/components/DiagnosticPanel'
+import { LogViewer } from '@/components/LogViewer'
 import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { fetchNodes, fetchPods, fetchEvents, fetchNamespaceSummaries, fetchClusterInfo } from '@/lib/api'
+import { fetchNodes, fetchPods, fetchEvents, fetchNamespaceSummaries, fetchClusterInfo, fetchPodContainers } from '@/lib/api'
 import type { NodeSummary, PodSummary, EventSummary, ClusterInfo } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -27,6 +28,7 @@ export function Overview() {
   const [events, setEvents] = useState<EventSummary[]>([])
   const [nsCount, setNsCount] = useState(0)
   const [diagTarget, setDiagTarget] = useState<{ namespace: string; name: string } | null>(null)
+  const [logTarget, setLogTarget] = useState<{ pod: PodSummary; containers: string[] } | null>(null)
   const [clusterInfo, setClusterInfo] = useState<ClusterInfo | null>(null)
 
   const load = useCallback(() => {
@@ -40,6 +42,11 @@ export function Overview() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  const handleLogClick = async (pod: PodSummary) => {
+    const containers = await fetchPodContainers(pod.namespace, pod.name).catch(() => [pod.name])
+    setLogTarget({ pod, containers })
+  }
 
   const readyNodes = nodes.filter((n) => n.status === 'Ready').length
   const unhealthyPods = pods.filter((p) => UNHEALTHY_STATUSES.some((s) => p.status.includes(s)))
@@ -118,6 +125,13 @@ export function Overview() {
                       {pod.status}
                     </span>
                     <button
+                      onClick={() => handleLogClick(pod)}
+                      style={{ background: '#f0fdf4', border: 'none', borderRadius: 4, padding: '2px 6px', fontSize: 10, color: '#16a34a', cursor: 'pointer', fontWeight: 600 }}
+                      title="View Logs"
+                    >
+                      📋
+                    </button>
+                    <button
                       onClick={() => setDiagTarget({ namespace: pod.namespace, name: pod.name })}
                       style={{ background: '#f5f3ff', border: 'none', borderRadius: 4, padding: '2px 6px', fontSize: 10, color: '#7c3aed', cursor: 'pointer', fontWeight: 600 }}
                       title="AI Diagnose"
@@ -176,6 +190,14 @@ export function Overview() {
           namespace={diagTarget.namespace}
           podName={diagTarget.name}
           onClose={() => setDiagTarget(null)}
+        />
+      )}
+      {logTarget && (
+        <LogViewer
+          namespace={logTarget.pod.namespace}
+          podName={logTarget.pod.name}
+          containers={logTarget.containers}
+          onClose={() => setLogTarget(null)}
         />
       )}
     </div>
