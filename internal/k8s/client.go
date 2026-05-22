@@ -216,6 +216,36 @@ func jobDuration(j batchv1.Job) string {
 	return fmt.Sprintf("%dh", int(d.Hours()))
 }
 
+// ListCronJobs returns cronjob summaries for the given namespace. Pass "" for all namespaces.
+func (c *Client) ListCronJobs(ctx context.Context, namespace string) ([]CronJobSummary, error) {
+	list, err := c.kube.BatchV1().CronJobs(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	summaries := make([]CronJobSummary, 0, len(list.Items))
+	for _, cj := range list.Items {
+		summaries = append(summaries, toCronJobSummary(cj))
+	}
+	return summaries, nil
+}
+
+func toCronJobSummary(cj batchv1.CronJob) CronJobSummary {
+	lastSchedule := "Never"
+	if cj.Status.LastScheduleTime != nil {
+		lastSchedule = formatAge(cj.Status.LastScheduleTime.Time)
+	}
+	suspend := cj.Spec.Suspend != nil && *cj.Spec.Suspend
+	return CronJobSummary{
+		Name:         cj.Name,
+		Namespace:    cj.Namespace,
+		Schedule:     cj.Spec.Schedule,
+		Suspend:      suspend,
+		Active:       len(cj.Status.Active),
+		LastSchedule: lastSchedule,
+		Age:          formatAge(cj.CreationTimestamp.Time),
+	}
+}
+
 // GetContexts returns kubeconfig context information.
 func (c *Client) GetContexts() ([]ContextInfo, error) {
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()

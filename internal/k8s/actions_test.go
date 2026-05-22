@@ -131,3 +131,41 @@ func TestDeleteJob_RemovesJob(t *testing.T) {
 	list, _ := fakeClient.BatchV1().Jobs("default").List(context.Background(), metav1.ListOptions{})
 	assert.Len(t, list.Items, 0)
 }
+
+func TestDeleteCronJob_RemovesCronJob(t *testing.T) {
+	fakeClient := fake.NewSimpleClientset(
+		&batchv1.CronJob{ObjectMeta: metav1.ObjectMeta{Name: "backup", Namespace: "default"}},
+	)
+	client := k8s.NewClientFromKubernetesClient(fakeClient, "")
+	err := client.DeleteCronJob(context.Background(), "default", "backup")
+	require.NoError(t, err)
+	list, _ := fakeClient.BatchV1().CronJobs("default").List(context.Background(), metav1.ListOptions{})
+	assert.Len(t, list.Items, 0)
+}
+
+func TestTriggerCronJob_CreatesJob(t *testing.T) {
+	cj := &batchv1.CronJob{
+		ObjectMeta: metav1.ObjectMeta{Name: "backup", Namespace: "default", UID: "uid-1"},
+		Spec: batchv1.CronJobSpec{
+			Schedule: "*/5 * * * *",
+			JobTemplate: batchv1.JobTemplateSpec{
+				Spec: batchv1.JobSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers:    []corev1.Container{{Name: "c", Image: "busybox"}},
+							RestartPolicy: corev1.RestartPolicyNever,
+						},
+					},
+				},
+			},
+		},
+	}
+	fakeClient := fake.NewSimpleClientset(cj)
+	client := k8s.NewClientFromKubernetesClient(fakeClient, "")
+	err := client.TriggerCronJob(context.Background(), "default", "backup")
+	require.NoError(t, err)
+	jobs, err := fakeClient.BatchV1().Jobs("default").List(context.Background(), metav1.ListOptions{})
+	require.NoError(t, err)
+	assert.Len(t, jobs.Items, 1)
+	assert.Contains(t, jobs.Items[0].Name, "backup-manual-")
+}

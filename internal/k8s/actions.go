@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -105,4 +106,35 @@ func (c *Client) DeleteDaemonSet(ctx context.Context, namespace, name string) er
 
 func (c *Client) DeleteJob(ctx context.Context, namespace, name string) error {
 	return c.kube.BatchV1().Jobs(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+}
+
+func (c *Client) DeleteCronJob(ctx context.Context, namespace, name string) error {
+	return c.kube.BatchV1().CronJobs(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+}
+
+func (c *Client) TriggerCronJob(ctx context.Context, namespace, name string) error {
+	cj, err := c.kube.BatchV1().CronJobs(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("get cronjob: %w", err)
+	}
+	t := true
+	jobName := fmt.Sprintf("%s-manual-%d", name, time.Now().Unix())
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      jobName,
+			Namespace: namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "batch/v1",
+					Kind:       "CronJob",
+					Name:       cj.Name,
+					UID:        cj.UID,
+					Controller: &t,
+				},
+			},
+		},
+		Spec: cj.Spec.JobTemplate.Spec,
+	}
+	_, err = c.kube.BatchV1().Jobs(namespace).Create(ctx, job, metav1.CreateOptions{})
+	return err
 }
