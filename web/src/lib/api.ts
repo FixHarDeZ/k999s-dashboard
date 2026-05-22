@@ -1,4 +1,4 @@
-import type { PodSummary, DeploymentSummary, StatefulSetSummary, IngressSummary, HelmReleaseSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary, TopologyGraph, APIResourceInfo, CRDPresence } from './types'
+import type { PodSummary, DeploymentSummary, StatefulSetSummary, DaemonSetSummary, IngressSummary, HelmReleaseSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary, TopologyGraph, APIResourceInfo, CRDPresence } from './types'
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path)
@@ -206,3 +206,14 @@ export async function fetchHelmReleases(namespace: string): Promise<HelmReleaseS
 
 export const uninstallHelmRelease = (namespace: string, name: string) =>
   action(`/api/v1/helm/releases/${namespace}/${name}`, 'DELETE')
+
+export async function fetchDaemonSets(namespace: string): Promise<DaemonSetSummary[]> {
+  const data = await get<{ items: DaemonSetSummary[] }>(`/api/v1/daemonsets?namespace=${namespace}`)
+  return data.items
+}
+
+export const rolloutRestartDaemonSet = (ns: string, name: string) =>
+  action(`/api/v1/daemonsets/${ns}/${name}/rollout-restart`, 'POST')
+
+export const deleteDaemonSet = (ns: string, name: string) =>
+  action(`/api/v1/daemonsets/${ns}/${name}`, 'DELETE')

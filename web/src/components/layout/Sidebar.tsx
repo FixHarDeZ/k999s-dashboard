@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Box, Rocket, Globe, Settings, Server, FolderOpen, Telescope, LayoutDashboard, Cpu, Lock, Activity, BarChart2, GitBranch, Layers, Waypoints, Bird, Network, Package } from 'lucide-react'
+import { Box, Rocket, Globe, Settings, Server, FolderOpen, Telescope, LayoutDashboard, Cpu, Lock, Activity, BarChart2, GitBranch, Layers, Waypoints, Bird, Network, Package, Shield } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { CRDPresence } from '@/lib/types'
 
@@ -35,6 +35,7 @@ export function Sidebar({ detectedCRDs }: SidebarProps) {
         { label: 'Pods', to: '/pods', icon: <Box size={14} /> },
         { label: 'Deployments', to: '/deployments', icon: <Rocket size={14} /> },
         { label: 'StatefulSets', to: '/statefulsets', icon: <Server size={14} /> },
+        { label: 'DaemonSets', to: '/daemonsets', icon: <Shield size={14} /> },
       ],
     },
     {
