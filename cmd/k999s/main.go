@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -46,6 +47,9 @@ func main() {
 	}
 
 	hub := ws.NewHub()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go k8s.StartInformers(ctx, k8sClient.Kube(), hub)
 	router := api.NewRouter(k8sClient, frontend.FS, hub, provider, cfg)
 	addr := fmt.Sprintf(":%d", *port)
 	url := fmt.Sprintf("http://localhost:%d", *port)

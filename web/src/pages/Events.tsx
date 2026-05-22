@@ -1,6 +1,7 @@
 import { RefreshButton } from '@/components/RefreshButton'
 import { useEffect, useState, useCallback } from 'react'
 import { useOutletContext } from 'react-router-dom'
+import { useWebSocket } from '@/hooks/useWebSocket'
 import { createColumnHelper, flexRender, getCoreRowModel, getSortedRowModel, useReactTable, type SortingState } from '@tanstack/react-table'
 import { fetchEvents } from '@/lib/api'
 import type { EventSummary } from '@/lib/types'
@@ -39,6 +40,10 @@ export function Events() {
   }, [namespace])
 
   useEffect(() => { load() }, [load])
+
+  useWebSocket((msg) => {
+    if (msg.type === 'events_update') load()
+  })
 
   const filtered = filter === 'all' ? items : items.filter((e) => e.type === filter)
 
