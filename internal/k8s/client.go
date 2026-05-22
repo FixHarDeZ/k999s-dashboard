@@ -7,6 +7,7 @@ import (
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -153,6 +154,66 @@ func toDaemonSetSummary(d appsv1.DaemonSet) DaemonSetSummary {
 		Available: d.Status.NumberAvailable,
 		Age:       formatAge(d.CreationTimestamp.Time),
 	}
+}
+
+// ListJobs returns job summaries for the given namespace. Pass "" for all namespaces.
+func (c *Client) ListJobs(ctx context.Context, namespace string) ([]JobSummary, error) {
+	list, err := c.kube.BatchV1().Jobs(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	summaries := make([]JobSummary, 0, len(list.Items))
+	for _, j := range list.Items {
+		summaries = append(summaries, toJobSummary(j))
+	}
+	return summaries, nil
+}
+
+func toJobSummary(j batchv1.Job) JobSummary {
+	completions := fmt.Sprintf("%d/1", j.Status.Succeeded)
+	if j.Spec.Completions != nil {
+		completions = fmt.Sprintf("%d/%d", j.Status.Succeeded, *j.Spec.Completions)
+	}
+	return JobSummary{
+		Name:        j.Name,
+		Namespace:   j.Namespace,
+		Completions: completions,
+		Succeeded:   j.Status.Succeeded,
+		Failed:      j.Status.Failed,
+		Status:      jobStatus(j),
+		Duration:    jobDuration(j),
+		Age:         formatAge(j.CreationTimestamp.Time),
+	}
+}
+
+func jobStatus(j batchv1.Job) string {
+	for _, cond := range j.Status.Conditions {
+		if cond.Type == batchv1.JobComplete && cond.Status == corev1.ConditionTrue {
+			return "Complete"
+		}
+		if cond.Type == batchv1.JobFailed && cond.Status == corev1.ConditionTrue {
+			return "Failed"
+		}
+	}
+	return "Running"
+}
+
+func jobDuration(j batchv1.Job) string {
+	if j.Status.StartTime == nil {
+		return ""
+	}
+	end := time.Now()
+	if j.Status.CompletionTime != nil {
+		end = j.Status.CompletionTime.Time
+	}
+	d := end.Sub(j.Status.StartTime.Time)
+	if d < time.Minute {
+		return fmt.Sprintf("%ds", int(d.Seconds()))
+	}
+	if d < time.Hour {
+		return fmt.Sprintf("%dm", int(d.Minutes()))
+	}
+	return fmt.Sprintf("%dh", int(d.Hours()))
 }
 
 // GetContexts returns kubeconfig context information.

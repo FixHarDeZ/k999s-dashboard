@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -117,5 +118,16 @@ func TestDeleteDaemonSet_RemovesDaemonSet(t *testing.T) {
 	err := client.DeleteDaemonSet(context.Background(), "default", "ds-1")
 	require.NoError(t, err)
 	list, _ := fakeClient.AppsV1().DaemonSets("default").List(context.Background(), metav1.ListOptions{})
+	assert.Len(t, list.Items, 0)
+}
+
+func TestDeleteJob_RemovesJob(t *testing.T) {
+	fakeClient := fake.NewSimpleClientset(
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: "backup", Namespace: "default"}},
+	)
+	client := k8s.NewClientFromKubernetesClient(fakeClient, "")
+	err := client.DeleteJob(context.Background(), "default", "backup")
+	require.NoError(t, err)
+	list, _ := fakeClient.BatchV1().Jobs("default").List(context.Background(), metav1.ListOptions{})
 	assert.Len(t, list.Items, 0)
 }

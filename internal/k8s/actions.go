@@ -102,3 +102,7 @@ func (c *Client) RolloutRestartDaemonSet(ctx context.Context, namespace, name st
 func (c *Client) DeleteDaemonSet(ctx context.Context, namespace, name string) error {
 	return c.kube.AppsV1().DaemonSets(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 }
+
+func (c *Client) DeleteJob(ctx context.Context, namespace, name string) error {
+	return c.kube.BatchV1().Jobs(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+}

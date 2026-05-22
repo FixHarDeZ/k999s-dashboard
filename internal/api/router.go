@@ -76,6 +76,8 @@ func NewRouter(k8sClient *k8s.Client, webFS embed.FS, hub *ws.Hub, diag diagnost
 	v1.GET("/daemonsets", r.handleListDaemonSets)
 	v1.POST("/daemonsets/:ns/:name/rollout-restart", r.handleRolloutRestartDaemonSet)
 	v1.DELETE("/daemonsets/:ns/:name", r.handleDeleteDaemonSet)
+	v1.GET("/jobs", r.handleListJobs)
+	v1.DELETE("/jobs/:ns/:name", r.handleDeleteJob)
 	v1.GET("/settings", r.handleGetSettings)
 	v1.PUT("/settings", r.handleSaveSettings)
 	v1.GET("/helm/releases", r.handleListHelmReleases)

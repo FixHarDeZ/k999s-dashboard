@@ -622,3 +622,22 @@ func (r *Router) handleDeleteDaemonSet(c *gin.Context) {
 	}
 	c.Status(http.StatusNoContent)
 }
+
+func (r *Router) handleListJobs(c *gin.Context) {
+	namespace := c.Query("namespace")
+	items, err := r.k8s.ListJobs(c.Request.Context(), namespace)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": items})
+}
+
+func (r *Router) handleDeleteJob(c *gin.Context) {
+	ns, name := c.Param("ns"), c.Param("name")
+	if err := r.k8s.DeleteJob(c.Request.Context(), ns, name); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
