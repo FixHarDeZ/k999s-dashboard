@@ -1,18 +1,28 @@
 import { RefreshButton } from '@/components/RefreshButton'
 import { useEffect, useState, useCallback } from 'react'
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
-import { fetchNodes, cordonNode, uncordonNode, drainNode } from '@/lib/api'
+import { fetchNodes, cordonNode, uncordonNode, drainNode, fetchNodeMetrics } from '@/lib/api'
 import { ConfirmModal } from '@/components/ConfirmModal'
-import type { NodeSummary } from '@/lib/types'
+import type { NodeSummary, NodeMetricsSummary } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { parseMillicores, parseMiB, pct } from '@/lib/resourceUtils'
 
 const col = createColumnHelper<NodeSummary>()
 
 export function Nodes() {
   const [items, setItems] = useState<NodeSummary[]>([])
+  const [nodeMetrics, setNodeMetrics] = useState<NodeMetricsSummary[]>([])
   const [confirmAction, setConfirmAction] = useState<{ type: 'cordon' | 'uncordon' | 'drain'; node: NodeSummary } | null>(null)
 
-  const load = useCallback(() => { fetchNodes().then(setItems).catch(console.error) }, [])
+  const load = useCallback(() => {
+    Promise.all([
+      fetchNodes(),
+      fetchNodeMetrics().catch(() => [] as NodeMetricsSummary[]),
+    ]).then(([nodes, metrics]) => {
+      setItems(nodes)
+      setNodeMetrics(metrics)
+    }).catch(console.error)
+  }, [])
   useEffect(() => { load() }, [load])
 
   const handleConfirm = async () => {
@@ -29,6 +39,8 @@ export function Nodes() {
     load()
   }
 
+  const metricsMap = new Map(nodeMetrics.map(m => [m.name, m]))
+
   const columns = [
     col.accessor('name', { header: 'Name', cell: (i) => <span className="font-medium text-xs text-primary-900">{i.getValue()}</span> }),
     col.accessor('status', { header: 'Status', cell: (i) => <span className={cn('text-xs font-medium', i.getValue() === 'Ready' ? 'text-green-600' : 'text-red-600')}>● {i.getValue()}</span> }),
@@ -36,6 +48,38 @@ export function Nodes() {
     col.accessor('roles', { header: 'Roles', cell: (i) => <span className="text-xs text-gray-600">{i.getValue()}</span> }),
     col.accessor('version', { header: 'Version', cell: (i) => <span className="text-xs font-mono text-gray-600">{i.getValue()}</span> }),
     col.accessor('age', { header: 'Age', cell: (i) => <span className="text-xs text-gray-500">{i.getValue()}</span> }),
+    col.display({
+      id: 'cpu',
+      header: 'CPU',
+      cell: ({ row }) => {
+        const m = metricsMap.get(row.original.name)
+        return <span className="text-xs font-mono text-gray-700">{m?.cpu ?? '—'}</span>
+      },
+    }),
+    col.display({
+      id: 'cpuA',
+      header: '%CPU/A',
+      cell: ({ row }) => {
+        const m = metricsMap.get(row.original.name)
+        return <span className="text-xs text-gray-500">{pct(m?.cpu ?? '—', row.original.cpuAllocatable, parseMillicores)}</span>
+      },
+    }),
+    col.display({
+      id: 'mem',
+      header: 'MEM',
+      cell: ({ row }) => {
+        const m = metricsMap.get(row.original.name)
+        return <span className="text-xs font-mono text-gray-700">{m?.memory ?? '—'}</span>
+      },
+    }),
+    col.display({
+      id: 'memA',
+      header: '%MEM/A',
+      cell: ({ row }) => {
+        const m = metricsMap.get(row.original.name)
+        return <span className="text-xs text-gray-500">{pct(m?.memory ?? '—', row.original.memAllocatable, parseMiB)}</span>
+      },
+    }),
     col.display({
       id: 'actions',
       header: 'Actions',

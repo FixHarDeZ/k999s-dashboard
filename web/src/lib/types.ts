@@ -67,6 +67,8 @@ export interface NodeSummary {
   age: string
   version: string
   schedulable: boolean
+  cpuAllocatable: string
+  memAllocatable: string
 }
 
 export interface NamespaceSummary {
