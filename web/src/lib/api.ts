@@ -1,4 +1,4 @@
-import type { PodSummary, DeploymentSummary, StatefulSetSummary, DaemonSetSummary, IngressSummary, HelmReleaseSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary, TopologyGraph, APIResourceInfo, CRDPresence, JobSummary } from './types'
+import type { PodSummary, DeploymentSummary, StatefulSetSummary, DaemonSetSummary, IngressSummary, HelmReleaseSummary, ContextInfo, ServiceSummary, NodeSummary, NamespaceSummary, ConfigMapSummary, SecretSummary, EventSummary, PodMetricsSummary, NodeMetricsSummary, TopologyGraph, APIResourceInfo, CRDPresence, JobSummary, CronJobSummary } from './types'
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path)
@@ -225,3 +225,14 @@ export async function fetchJobs(namespace: string): Promise<JobSummary[]> {
 
 export const deleteJob = (ns: string, name: string) =>
   action(`/api/v1/jobs/${ns}/${name}`, 'DELETE')
+
+export async function fetchCronJobs(namespace: string): Promise<CronJobSummary[]> {
+  const data = await get<{ items: CronJobSummary[] }>(`/api/v1/cronjobs?namespace=${namespace}`)
+  return data.items
+}
+
+export const deleteCronJob = (ns: string, name: string) =>
+  action(`/api/v1/cronjobs/${ns}/${name}`, 'DELETE')
+
+export const triggerCronJob = (ns: string, name: string) =>
+  action(`/api/v1/cronjobs/${ns}/${name}/trigger`, 'POST')

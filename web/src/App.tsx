@@ -19,6 +19,7 @@ import { Canary } from '@/pages/Canary'
 import { StatefulSets } from '@/pages/StatefulSets'
 import { DaemonSets } from '@/pages/DaemonSets'
 import { Jobs } from '@/pages/Jobs'
+import { CronJobs } from '@/pages/CronJobs'
 import { Ingress } from '@/pages/Ingress'
 import { Helm } from '@/pages/Helm'
 import { NamespaceDetail } from '@/pages/NamespaceDetail'
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="/statefulsets" element={<StatefulSets />} />
         <Route path="/daemonsets" element={<DaemonSets />} />
         <Route path="/jobs" element={<Jobs />} />
+        <Route path="/cronjobs" element={<CronJobs />} />
         <Route path="/services" element={<Services />} />
         <Route path="/ingress" element={<Ingress />} />
         <Route path="/helm" element={<Helm />} />
