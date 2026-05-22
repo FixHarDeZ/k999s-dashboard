@@ -317,6 +317,42 @@ func containerStateInfo(s corev1.ContainerState) (state, reason string) {
 	return "unknown", ""
 }
 
+// podDisplayStatus derives a human-readable status from a pod, mirroring kubectl's
+// behaviour. Unlike p.Status.Phase (which stays "Running" even during
+// CrashLoopBackOff), this checks container waiting/terminated reasons first.
+func podDisplayStatus(p corev1.Pod) string {
+	if p.DeletionTimestamp != nil {
+		return "Terminating"
+	}
+	// Init-container failures propagate first.
+	for _, cs := range p.Status.InitContainerStatuses {
+		if cs.State.Waiting != nil && cs.State.Waiting.Reason != "" {
+			return cs.State.Waiting.Reason
+		}
+		if cs.State.Terminated != nil && cs.State.Terminated.ExitCode != 0 {
+			if cs.State.Terminated.Reason != "" {
+				return cs.State.Terminated.Reason
+			}
+			return "Error"
+		}
+	}
+	// Main-container states.
+	for _, cs := range p.Status.ContainerStatuses {
+		if cs.State.Waiting != nil && cs.State.Waiting.Reason != "" {
+			return cs.State.Waiting.Reason
+		}
+		if cs.State.Terminated != nil {
+			if cs.State.Terminated.Reason != "" {
+				return cs.State.Terminated.Reason
+			}
+			if cs.State.Terminated.ExitCode != 0 {
+				return "Error"
+			}
+		}
+	}
+	return string(p.Status.Phase)
+}
+
 func toPodSummary(p corev1.Pod) PodSummary {
 	readyCount := 0
 	totalCount := len(p.Spec.Containers)
@@ -388,7 +424,7 @@ func toPodSummary(p corev1.Pod) PodSummary {
 	return PodSummary{
 		Name:       p.Name,
 		Namespace:  p.Namespace,
-		Status:     string(p.Status.Phase),
+		Status:     podDisplayStatus(p),
 		Ready:      fmt.Sprintf("%d/%d", readyCount, totalCount),
 		Restarts:   restarts,
 		Age:        formatAge(p.CreationTimestamp.Time),

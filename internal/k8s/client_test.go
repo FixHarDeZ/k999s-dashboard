@@ -124,3 +124,35 @@ func TestListEvents_ReturnsList(t *testing.T) {
 	assert.Equal(t, "Warning", events[0].Type)
 	assert.Equal(t, "BackOff", events[0].Reason)
 }
+
+func TestListPods_CrashLoopBackOffStatus(t *testing.T) {
+	fakeClient := fake.NewSimpleClientset(
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "crash-pod", Namespace: "default"},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{{Name: "app", Image: "busybox"}},
+			},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodRunning,
+				ContainerStatuses: []corev1.ContainerStatus{
+					{
+						Name:         "app",
+						Ready:        false,
+						RestartCount: 3,
+						State: corev1.ContainerState{
+							Waiting: &corev1.ContainerStateWaiting{
+								Reason:  "CrashLoopBackOff",
+								Message: "back-off 1m20s restarting failed container",
+							},
+						},
+					},
+				},
+			},
+		},
+	)
+	client := k8s.NewClientFromKubernetesClient(fakeClient, "")
+	pods, err := client.ListPods(context.Background(), "default")
+	require.NoError(t, err)
+	require.Len(t, pods, 1)
+	assert.Equal(t, "CrashLoopBackOff", pods[0].Status)
+}

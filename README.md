@@ -13,6 +13,8 @@
 ![Go](https://img.shields.io/badge/Go-1.21+-00ADD8)
 ![License](https://img.shields.io/badge/license-MIT-22c55e)
 
+![k999s overview](screenshots/k999s-overview.png)
+
 </div>
 
 ---
