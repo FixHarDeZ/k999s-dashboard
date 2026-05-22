@@ -187,3 +187,62 @@ func TestTriggerCronJob_CreatesJob(t *testing.T) {
 	assert.Len(t, jobs.Items, 1)
 	assert.Contains(t, jobs.Items[0].Name, "backup-manual-")
 }
+
+func TestRollbackDeployment_PatchesToPreviousRevision(t *testing.T) {
+	replicas := int32(1)
+	fakeClient := fake.NewSimpleClientset(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        "my-app",
+				Namespace:   "default",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "2"},
+				UID:         "deploy-uid",
+			},
+			Spec: appsv1.DeploymentSpec{Replicas: &replicas},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-app-v1",
+				Namespace: "default",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				OwnerReferences: []metav1.OwnerReference{
+					{Kind: "Deployment", Name: "my-app", UID: "deploy-uid"},
+				},
+			},
+			Spec: appsv1.ReplicaSetSpec{
+				Template: corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"version": "v1"}},
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-app-v2",
+				Namespace: "default",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "2"},
+				OwnerReferences: []metav1.OwnerReference{
+					{Kind: "Deployment", Name: "my-app", UID: "deploy-uid"},
+				},
+			},
+		},
+	)
+	client := k8s.NewClientFromKubernetesClient(fakeClient, "")
+	err := client.RollbackDeployment(context.Background(), "default", "my-app")
+	require.NoError(t, err)
+}
+
+func TestRollbackDeployment_NoPreviousRevision(t *testing.T) {
+	fakeClient := fake.NewSimpleClientset(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        "my-app",
+				Namespace:   "default",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			},
+		},
+	)
+	client := k8s.NewClientFromKubernetesClient(fakeClient, "")
+	err := client.RollbackDeployment(context.Background(), "default", "my-app")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no previous revision")
+}

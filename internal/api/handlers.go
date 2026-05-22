@@ -789,3 +789,16 @@ func (r *Router) handleStopPortForward(c *gin.Context) {
 	close(entry.stopCh)
 	c.Status(http.StatusNoContent)
 }
+
+func (r *Router) handleRollbackDeployment(c *gin.Context) {
+	ns, name := c.Param("namespace"), c.Param("name")
+	if err := r.k8s.RollbackDeployment(c.Request.Context(), ns, name); err != nil {
+		if strings.Contains(err.Error(), "no previous revision") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}

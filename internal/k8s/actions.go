@@ -2,9 +2,12 @@ package k8s
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -144,5 +147,52 @@ func (c *Client) TriggerCronJob(ctx context.Context, namespace, name string) err
 		Spec: cj.Spec.JobTemplate.Spec,
 	}
 	_, err = c.kube.BatchV1().Jobs(namespace).Create(ctx, job, metav1.CreateOptions{})
+	return err
+}
+
+func (c *Client) RollbackDeployment(ctx context.Context, namespace, name string) error {
+	deploy, err := c.kube.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("get deployment: %w", err)
+	}
+	currentRevision, err := strconv.ParseInt(deploy.Annotations["deployment.kubernetes.io/revision"], 10, 64)
+	if err != nil {
+		return fmt.Errorf("parse revision annotation: %w", err)
+	}
+	targetRevision := fmt.Sprintf("%d", currentRevision-1)
+
+	rsList, err := c.kube.AppsV1().ReplicaSets(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("list replicasets: %w", err)
+	}
+
+	var targetRS *appsv1.ReplicaSet
+	for i := range rsList.Items {
+		rs := &rsList.Items[i]
+		if rs.Annotations["deployment.kubernetes.io/revision"] != targetRevision {
+			continue
+		}
+		for _, ref := range rs.OwnerReferences {
+			if ref.Kind == "Deployment" && ref.Name == name {
+				targetRS = rs
+				break
+			}
+		}
+		if targetRS != nil {
+			break
+		}
+	}
+	if targetRS == nil {
+		return fmt.Errorf("no previous revision found for deployment %s", name)
+	}
+
+	templateJSON, err := json.Marshal(targetRS.Spec.Template)
+	if err != nil {
+		return fmt.Errorf("marshal template: %w", err)
+	}
+	patch := fmt.Sprintf(`{"spec":{"template":%s}}`, string(templateJSON))
+	_, err = c.kube.AppsV1().Deployments(namespace).Patch(
+		ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{},
+	)
 	return err
 }

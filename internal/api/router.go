@@ -85,6 +85,7 @@ func NewRouter(k8sClient *k8s.Client, webFS embed.FS, hub *ws.Hub, diag diagnost
 	v1.POST("/pods/:namespace/:name/restart", r.handleRestartPod)
 	v1.POST("/deployments/:namespace/:name/scale", r.handleScaleDeployment)
 	v1.POST("/deployments/:namespace/:name/rollout-restart", r.handleRolloutRestartDeployment)
+	v1.POST("/deployments/:namespace/:name/rollback", r.handleRollbackDeployment)
 	v1.DELETE("/deployments/:namespace/:name", r.handleDeleteDeployment)
 	v1.GET("/daemonsets", r.handleListDaemonSets)
 	v1.POST("/daemonsets/:ns/:name/rollout-restart", r.handleRolloutRestartDaemonSet)
