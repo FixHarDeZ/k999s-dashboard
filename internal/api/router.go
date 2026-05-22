@@ -15,6 +15,16 @@ import (
 	"github.com/k999s/dashboard/internal/ws"
 )
 
+type pfEntry struct {
+	ID         string `json:"id"`
+	Namespace  string `json:"namespace"`
+	TargetKind string `json:"targetKind"`
+	TargetName string `json:"targetName"`
+	LocalPort  int    `json:"localPort"`
+	RemotePort int    `json:"remotePort"`
+	stopCh     chan struct{}
+}
+
 type Router struct {
 	engine     *gin.Engine
 	k8s        *k8s.Client
@@ -23,6 +33,8 @@ type Router struct {
 	cfg        *config.Config
 	helm       *helmclient.Client
 	mu         sync.RWMutex
+	pfEntries  map[string]*pfEntry
+	pfMu       sync.Mutex
 }
 
 var upgrader = websocket.Upgrader{
@@ -38,6 +50,7 @@ func NewRouter(k8sClient *k8s.Client, webFS embed.FS, hub *ws.Hub, diag diagnost
 		diagnostic: diag,
 		cfg:        cfg,
 		helm:       helmclient.NewClient(cfg.KubeconfigPath, cfg.CurrentContext),
+		pfEntries:  make(map[string]*pfEntry),
 	}
 	r.engine.Use(gin.Recovery())
 	r.engine.Use(corsMiddleware())
@@ -83,6 +96,9 @@ func NewRouter(k8sClient *k8s.Client, webFS embed.FS, hub *ws.Hub, diag diagnost
 	v1.POST("/cronjobs/:ns/:name/trigger", r.handleTriggerCronJob)
 	v1.GET("/hpas", r.handleListHPAs)
 	v1.PATCH("/hpas/:ns/:name/limits", r.handlePatchHPALimits)
+	v1.POST("/port-forward", r.handleStartPortForward)
+	v1.GET("/port-forward", r.handleListPortForwards)
+	v1.DELETE("/port-forward/:id", r.handleStopPortForward)
 	v1.GET("/settings", r.handleGetSettings)
 	v1.PUT("/settings", r.handleSaveSettings)
 	v1.GET("/helm/releases", r.handleListHelmReleases)
