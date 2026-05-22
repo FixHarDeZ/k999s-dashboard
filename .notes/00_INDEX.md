@@ -7,7 +7,7 @@
 k999s เป็น Kubernetes dashboard แบบ local web app — single Go binary ที่ embed React frontend อ่าน `~/.kube/config` อัตโนมัติ เปิด browser เองที่ `:8080`
 
 **GitHub:** https://github.com/FixHarDeZ/k999s-dashboard  
-**Version:** v0.2.0 (file: `VERSION`)
+**Version:** v0.3.0 (file: `VERSION`) — [GitHub Release](https://github.com/FixHarDeZ/k999s-dashboard/releases/tag/v0.3.0)
 
 ---
 

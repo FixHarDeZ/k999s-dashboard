@@ -1,5 +1,12 @@
 # Daily Log
 
+## 2026-05-22 — v0.3.0 Released
+
+GitHub Release: https://github.com/FixHarDeZ/k999s-dashboard/releases/tag/v0.3.0
+5 platform binaries + checksums.txt
+
+---
+
 ## 2026-05-21 — Session End: Batch D (Namespace Drill-down)
 
 ### สรุปงาน
