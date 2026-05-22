@@ -58,6 +58,9 @@ func NewClientFromKubernetesClient(kube kubernetes.Interface, context string) *C
 	return &Client{kube: kube, currentContext: context}
 }
 
+// Kube returns the underlying kubernetes.Interface for use by informers.
+func (c *Client) Kube() kubernetes.Interface { return c.kube }
+
 // SwitchContext reinitialises the client for a different kubeconfig context.
 // This is safe for single-user local use (no mutex needed).
 func (c *Client) SwitchContext(contextName string) error {
