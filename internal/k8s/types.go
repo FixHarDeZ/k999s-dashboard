@@ -118,3 +118,45 @@ type IngressSummary struct {
 	Ports     string `json:"ports"`
 	Age       string `json:"age"`
 }
+
+type DaemonSetSummary struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Desired   int32  `json:"desired"`
+	Current   int32  `json:"current"`
+	Ready     int32  `json:"ready"`
+	Available int32  `json:"available"`
+	Age       string `json:"age"`
+}
+
+type JobSummary struct {
+	Name        string `json:"name"`
+	Namespace   string `json:"namespace"`
+	Completions string `json:"completions"`
+	Succeeded   int32  `json:"succeeded"`
+	Failed      int32  `json:"failed"`
+	Status      string `json:"status"`
+	Duration    string `json:"duration"`
+	Age         string `json:"age"`
+}
+
+type CronJobSummary struct {
+	Name         string `json:"name"`
+	Namespace    string `json:"namespace"`
+	Schedule     string `json:"schedule"`
+	Suspend      bool   `json:"suspend"`
+	Active       int    `json:"active"`
+	LastSchedule string `json:"lastSchedule"`
+	Age          string `json:"age"`
+}
+
+type HPASummary struct {
+	Name            string `json:"name"`
+	Namespace       string `json:"namespace"`
+	TargetKind      string `json:"targetKind"`
+	TargetName      string `json:"targetName"`
+	MinReplicas     int32  `json:"minReplicas"`
+	MaxReplicas     int32  `json:"maxReplicas"`
+	CurrentReplicas int32  `json:"currentReplicas"`
+	Age             string `json:"age"`
+}

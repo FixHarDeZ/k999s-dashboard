@@ -168,3 +168,45 @@ export interface HelmReleaseSummary {
   chart: string
   appVersion: string
 }
+
+export interface DaemonSetSummary {
+  name: string
+  namespace: string
+  desired: number
+  current: number
+  ready: number
+  available: number
+  age: string
+}
+
+export interface JobSummary {
+  name: string
+  namespace: string
+  completions: string
+  succeeded: number
+  failed: number
+  status: 'Complete' | 'Running' | 'Failed' | string
+  duration: string
+  age: string
+}
+
+export interface CronJobSummary {
+  name: string
+  namespace: string
+  schedule: string
+  suspend: boolean
+  active: number
+  lastSchedule: string
+  age: string
+}
+
+export interface HPASummary {
+  name: string
+  namespace: string
+  targetKind: string
+  targetName: string
+  minReplicas: number
+  maxReplicas: number
+  currentReplicas: number
+  age: string
+}
