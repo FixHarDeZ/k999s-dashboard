@@ -3,11 +3,11 @@ package k8s
 // ContainerInfo holds per-container detail for a pod.
 type ContainerInfo struct {
 	Name     string `json:"name"`
-	Type     string `json:"type"`     // "init", "sidecar", "main"
+	Type     string `json:"type"` // "init", "sidecar", "main"
 	Ready    bool   `json:"ready"`
 	Restarts int32  `json:"restarts"`
-	State    string `json:"state"`    // "running", "waiting", "terminated", "unknown"
-	Reason   string `json:"reason"`   // e.g. "CrashLoopBackOff", "OOMKilled"
+	State    string `json:"state"`  // "running", "waiting", "terminated", "unknown"
+	Reason   string `json:"reason"` // e.g. "CrashLoopBackOff", "OOMKilled"
 }
 
 // PodSummary is the API response type for pod list items.
